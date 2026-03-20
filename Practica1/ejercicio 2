@@ -1,0 +1,42 @@
+program primerEjercicio;
+const
+	fin = 30000;
+type		archivo_numeros = file of integer;
+var
+		num: integer;
+		archivo_num: archivo_numeros;
+		nombre: string;
+		contadorMenores: integer;
+		cantTotal: integer;
+		sumaTotal: integer;
+		promedio:integer;
+begin
+	writeln('Ingrese un nombre para el archivo:    ');
+	readln(nombre);
+	assign(archivo_num,nombre);
+	rewrite(archivo_num);
+	writeln('Ingrese numero al archivo:   (ingrese el numero 30.000 para finalizar el programa) ');
+	readln(num);
+	while (num <> fin) do
+		begin
+			write(archivo_num,num);
+			writeln('Ingrese otro numero    ');
+			readln(num);
+		end;	
+	contadorMenores:=0;
+	sumaTotal:=0;
+	cantTotal:= fileSize(archivo_num);
+	reset(archivo_num);
+	while(not eof (archivo_num)) do
+		begin
+			read(archivo_num, num);
+			if (num < 15000) then
+				contadorMenores:= contadorMenores + 1;
+			sumaTotal := sumaTotal + num;
+			writeln(filePos(archivo_num),'.   ', num);
+		end;
+	promedio:= sumaTotal  div cantTotal;
+	writeln('la cantidad de numeros menores a 15.000 es de:     ',contadorMenores);
+	writeln('el promedio de los numeros ingresados es de:     ',promedio);
+	close(archivo_num);
+end.
