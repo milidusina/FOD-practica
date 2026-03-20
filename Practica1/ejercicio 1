@@ -1,0 +1,21 @@
+program primerEjercicio;
+type		archivo_numeros = file of longint;
+var
+		num: longint;
+		archivo_num: archivo_numeros;
+		nombre: string;
+begin
+	writeln('Ingrese un nombre para el archivo:    ');
+	readln(nombre);
+	assign(archivo_num,nombre);
+	rewrite(archivo_num);
+	writeln('Ingrese numero al archivo:   (ingrese el numero 30.000 para finalizar el programa) ');
+	readln(num);
+	while (num <> 30000) do
+		begin
+			write(archivo_num,num);
+			writeln('Ingrese otro numero    ');
+			readln(num);
+		end;
+	close(archivo_num);
+end.
