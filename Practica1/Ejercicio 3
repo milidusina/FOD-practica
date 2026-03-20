@@ -1,0 +1,51 @@
+program ejer3;
+const
+	FIN = "fin";
+type   empleado = record
+				numero_empleado:integer;
+				nombre: string;
+				apellido: string;
+				dni: integer;
+				edad:integer;
+            end;
+    archivo_empleados = file of empleado;
+var
+		arch_empleados: archivo_empleados;
+		emp: empleado;
+		nombre_path:string;
+begin
+{en proceso, ejer a la mitad}
+     write('ingrese el nombre del archivo:     ');
+     readln(nombre_path);
+     assign(arch_empleados, nombre_path);   
+     rewrite(arch_empleados);
+     
+    writeln('ingrese el apellido del empleado');
+	readln(emp.apellido);
+	while(emp.apellido<>FIN) do
+		begin
+			writeln('ingrese el nombre');
+			readln(emp.nombre);
+			writeln('ingrese el numero de empleado');
+			readln(emp.numero_empleado);
+			writeln('ingrese el dni');
+			readln(emp.dni);
+			writeln('ingrese la edad');
+			readln(emp.edad);
+			write(arch_empleados,emp);
+		end;
+	{cant:=fileSize(personas);
+	writeln(cant);
+	num:=filePos(personas);
+	writeln('la posicion actual en el archivo es:  ', num);
+	seek(personas,0);
+	while (EOF(personas)<>true) do
+		begin
+			read(personas,per);
+			writeln(per.nombre);
+			writeln(per.dni);
+			writeln(per.edad);
+		end;}
+     close(arch_empleados);
+end.
+
