@@ -1,0 +1,252 @@
+program ejer4;
+const
+	FIN = 'fin';
+type   
+			empleado = record
+				num_emp:integer;
+				nombre: string;
+				apellido: string;
+				dni: integer;
+				edad:integer;
+            end;
+    archivo_empleados = file of empleado;
+    
+procedure LeerEmp (var emp:empleado);
+begin
+	writeln('ingrese el apellido del empleado:   ');
+	readln(emp.apellido);
+	if (emp.apellido<>FIN) then
+		begin
+			writeln('ingrese el nombre:   ');
+			readln(emp.nombre);
+			writeln('ingrese el numero de empleado:   ');
+			readln(emp.num_emp);
+			writeln('ingrese el dni:   ');
+			readln(emp.dni);
+			writeln('ingrese la edad:   ');
+			readln(emp.edad);
+		end;
+end;
+    
+procedure CargarArchivo (var arch:archivo_empleados);
+var
+	emp: empleado;
+begin
+	reset(arch);
+	seek(arch, filesize(arch));
+	LeerEmp (emp);
+	while (emp.apellido <> FIN) do
+		begin
+			write(arch,emp);
+			LeerEmp(emp);
+		end;
+	close(arch);
+end;
+    
+procedure MostrarEmp (e:empleado);
+begin
+	writeln ('empleado:  ', e.nombre, ' ', e.apellido, ',  edad ', e.edad, ', numero de empleado ', e.num_emp, ', dni ', e.dni);
+end;
+    
+procedure RecorrerImprimir (var arch:archivo_empleados; nom_ape:string);  //INCISO i
+var
+	emp: empleado;
+begin
+	reset(arch);
+	writeln;
+	writeln ('el dato ingresado coincidio con:   ');
+	while not eof (arch) do
+		begin
+			read(arch,emp);
+			if (emp.nombre = nom_ape) or (emp.apellido = nom_ape)  then  
+				MostrarEmp(emp);
+		end;
+	writeln;
+	close(arch);
+end; 
+ 
+ procedure Imprimir (var arch: archivo_empleados); //INCISO ii
+ var
+	e: empleado;
+begin
+	reset(arch);
+	writeln;
+	writeln('LISTADO DE TODOS LOS EMPLEADOS: ');
+	while not eof (arch) do 
+		begin
+			read(arch,e);
+			MostrarEmp(e);
+		end;
+	writeln;
+	close(arch);
+end;
+ 
+ procedure ImprimirCasiJubilados (var arch: archivo_empleados); // INCISO iii
+ var
+	emp: empleado;
+ begin
+	reset(arch);
+	writeln('Estos son los empleados proximos a jubilarse:   ');
+	while not eof (arch) do
+		begin
+			read(arch,emp);
+			if (emp.edad > 70) then 
+				MostrarEmp(emp);
+		end;
+	writeln;
+	close(arch);
+ end;
+ 
+ procedure ExisteEmpleado (var arch: archivo_empleados; emp: empleado; var ok: boolean);
+ var
+	e: empleado;
+ begin
+	reset(arch);
+	ok:= false;
+	while not eof (arch) do
+		begin
+			read(arch, e);
+			if (e.num_emp = emp.num_emp) then
+				ok:= true;
+		end;
+ end;
+
+ 
+ procedure Agregar (var arch: archivo_empleados);  //INCISO A     OPCION 1
+ var
+	e: empleado;
+	ok: boolean;
+ begin
+	reset(arch);
+	LeerEmp(e);
+	ExisteEmpleado(arch,e,ok);
+	if (not ok) then begin
+		seek (arch, filesize(arch));
+		write(arch,e);
+	end;
+	close(arch);
+ end;
+ 
+ procedure ModificarEdad (var arch: archivo_empleados; num: integer); // INCISO B    OPCION 2
+ var
+	emp: empleado;
+	edad: integer;
+ begin
+	reset(arch);
+	writeln('Ingrese la nueva edad');
+	readln(edad);
+	read(arch,emp);
+	while (not eof (arch)) and (emp.num_emp <> num) do
+			read(arch,emp);
+	if (emp.num_emp = num) then
+		begin
+			writeln('Empleado encontrado');
+			emp.edad := edad;
+			seek(arch, filepos(arch)-1);
+			write(arch,emp);
+			writeln('Cambio realizado con exito');
+			writeln('Los datos del empleado quedaron guardados:   ');
+			MostrarEmp(emp);
+		end
+	else
+		writeln('Empleado no encontrado');
+	close(arch);
+ end;
+ 
+ 
+var
+	arch_empleados: archivo_empleados;
+	nombre_path:string;
+	nom_ape: string;
+	opcion: integer;
+	num:integer;
+	permanece:boolean;
+	text1: Text; 
+	text2: Text;
+	nombre_text1: String;
+	nombre_text2: String;
+	emp:empleado;
+begin
+     write('ingrese el nombre del archivo:     ');
+     readln(nombre_path);
+     assign(arch_empleados, nombre_path);   
+     rewrite(arch_empleados);
+     
+	CargarArchivo(arch_empleados);	
+	writeln('Ingrese un nombre o apellido para buscar datos de empleados que coincidan:    ');
+	readln(nom_ape);
+	RecorrerImprimir(arch_empleados,nom_ape); //inciso i
+	Imprimir(arch_empleados); //inciso ii
+	ImprimirCasiJubilados(arch_empleados); //inciso iii
+	
+	permanece:=true;
+	while (permanece) do
+		begin
+			writeln;
+			writeln('MENU:   ');
+			writeln('opcion 1: anadir uno o mas empleados');
+			writeln('opcion 2: modificar un empleado');
+			writeln('opcion 3: exportar  empleados');
+			writeln('opcion 4: exportar empleados sin dni cargado');
+			writeln('opcion 5: salir del menu');
+			writeln;
+			writeln('ingrese una opcion');
+			readln(opcion);
+			case opcion of
+				1: begin
+						writeln('elegiste la opcion 1');
+						writeln('Ingrese la cantidad de empleados que quiere anadir: ');
+						readln(num);
+						while (num>0) do begin
+							Agregar(arch_empleados);
+							num:= num-1;
+						end;
+						writeln('Empleado agregado exitosamente');
+					end;
+				2: begin
+						writeln('elegiste la opcion 2');
+						writeln('Ingrese el numero del empleado a modificar: ');
+						readln(num);
+						ModificarEdad(arch_empleados, num);
+					end;
+				3:begin
+						writeln('elegiste la opcion 3');
+						writeln('Asigne un nombre al archivo de texto');
+						readln(nombre_text1);
+						Assign(text1, nombre_text1);
+						Reset(arch_empleados);
+						Rewrite(text1);
+						while not eof do 
+							begin
+								read(arch_empleados,emp);
+								writeln(text1, emp.nombre, ' ' ,emp.apellido,' ',emp.edad,' ',emp.num_emp,' ',emp.dni);
+							end;
+						close(arch_empleados);
+						close(text1);
+					end;
+				4:begin
+						writeln('elegiste la opcion 4');
+						writeln('Asigne un nombre al archivo de texto');
+						readln(nombre_text2);
+						Assign(text2, nombre_text2);
+						Reset(arch_empleados);
+						Rewrite(text2);
+						while not eof do 
+							begin
+								read(arch_empleados,emp);
+								if (emp.dni = 0) then
+									writeln(text2, emp.nombre, ' ' ,emp.apellido,' ',emp.edad,' ',emp.num_emp,' ',emp.dni);
+							end;
+						close(arch_empleados);
+						close(text2);
+					end;
+				5: begin
+						permanece:=false;
+					end;
+			end;
+		end;
+		
+	close(arch_empleados);
+end.
+//DUDAS. 1)  en la linea 111 yo ponia un close archivo, adentro del modulo de ExisteEmpleado, pero me tiraba error 103 en compilacion. 
+//                saque el close y anda perfecto. es necesario o no? una ayudante me dijo q lo ponga
