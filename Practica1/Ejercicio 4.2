@@ -1,0 +1,251 @@
+program ejer4;
+const
+	FIN = 'fin';
+type   
+			empleado = record
+				num_emp:integer;
+				nombre: string;
+				apellido: string;
+				dni: integer;
+				edad:integer;
+            end;
+    archivo_empleados = file of empleado;
+    
+procedure LeerEmp (var emp:empleado);
+begin
+	writeln('ingrese el apellido del empleado:   ');
+	readln(emp.apellido);
+	if (emp.apellido<>FIN) then
+		begin
+			writeln('ingrese el nombre:   ');
+			readln(emp.nombre);
+			writeln('ingrese el numero de empleado:   ');
+			readln(emp.num_emp);
+			writeln('ingrese el dni:   ');
+			readln(emp.dni);
+			writeln('ingrese la edad:   ');
+			readln(emp.edad);
+		end;
+end;
+    
+procedure CargarArchivo (var arch:archivo_empleados);
+var
+	emp: empleado;
+begin
+	reset(arch);
+	seek(arch, filesize(arch));
+	LeerEmp (emp);
+	while (emp.apellido <> FIN) do
+		begin
+			write(arch,emp);
+			LeerEmp(emp);
+		end;
+	close(arch);
+end;
+    
+procedure MostrarEmp (e:empleado);
+begin
+	writeln ('empleado:  ', e.nombre, ' ', e.apellido, ',  edad ', e.edad, ', numero de empleado ', e.num_emp, ', dni ', e.dni);
+end;
+    
+procedure RecorrerImprimir (var arch:archivo_empleados; nom_ape:string);  //INCISO i
+var
+	emp: empleado;
+begin
+	reset(arch);
+	writeln;
+	writeln ('el dato ingresado coincidio con:   ');
+	while not eof (arch) do
+		begin
+			read(arch,emp);
+			if (emp.nombre = nom_ape) or (emp.apellido = nom_ape)  then  
+				MostrarEmp(emp);
+		end;
+	writeln;
+	close(arch);
+end; 
+ 
+ procedure Imprimir (var arch: archivo_empleados); //INCISO ii
+ var
+	e: empleado;
+begin
+	reset(arch);
+	writeln;
+	writeln('LISTADO DE TODOS LOS EMPLEADOS: ');
+	while not eof (arch) do 
+		begin
+			read(arch,e);
+			MostrarEmp(e);
+		end;
+	writeln;
+	close(arch);
+end;
+ 
+ procedure ImprimirCasiJubilados (var arch: archivo_empleados); // INCISO iii
+ var
+	emp: empleado;
+ begin
+	reset(arch);
+	writeln('Estos son los empleados proximos a jubilarse:   ');
+	while not eof (arch) do
+		begin
+			read(arch,emp);
+			if (emp.edad > 70) then 
+				MostrarEmp(emp);
+		end;
+	writeln;
+	close(arch);
+ end;
+ 
+ procedure ExisteEmpleado (var arch: archivo_empleados; emp: empleado; var ok: boolean);
+ var
+	e: empleado;
+ begin
+	reset(arch);
+	ok:= false;
+	while not eof (arch) do
+		begin
+			read(arch, e);
+			if (e.num_emp = emp.num_emp) then
+				ok:= true;
+		end;
+	close(arch);
+ end;
+
+ 
+ procedure Agregar (var arch: archivo_empleados);  //INCISO A     OPCION 1
+ var
+	e: empleado;
+	ok: boolean;
+ begin
+	LeerEmp(e);
+	ExisteEmpleado(arch,e,ok);
+	reset(arch);
+	if (not ok) then 
+		begin
+			seek (arch, filesize(arch));
+			write(arch,e);
+			writeln('El empleado se añadio correctamente');
+		end
+	else writeln('El empleado correspondiente a ese numero de empleado ya existia. No se anadio');
+	close(arch);
+ end;
+ 
+ procedure ModificarEdad (var arch: archivo_empleados; num: integer); // INCISO B    OPCION 2
+ var
+	emp: empleado;
+	edad: integer;
+ begin
+	reset(arch);
+	writeln('Ingrese la nueva edad');
+	readln(edad);
+	read(arch,emp);
+	while (not eof (arch)) and (emp.num_emp <> num) do
+			read(arch,emp);
+	if (emp.num_emp = num) then
+		begin
+			writeln('Empleado encontrado');
+			emp.edad := edad;
+			seek(arch, filepos(arch)-1);
+			write(arch,emp);
+			writeln('Cambio realizado con exito');
+			writeln('Los datos del empleado quedaron guardados:   ');
+			MostrarEmp(emp);
+		end
+	else
+		writeln('Empleado no encontrado');
+	close(arch);
+ end;
+ 
+ 
+var
+	arch_empleados: archivo_empleados;
+	nombre_path:string;
+	nom_ape: string;
+	opcion: integer;
+	num:integer;
+	text1: Text; 
+	text2: Text;
+	nombre_text1: String;
+	nombre_text2: String;
+	emp:empleado;
+begin
+     write('ingrese el nombre del archivo:     ');
+     readln(nombre_path);
+     assign(arch_empleados, nombre_path);   
+     rewrite(arch_empleados);
+	CargarArchivo(arch_empleados);	
+	
+	repeat 
+		writeln;
+		writeln('MENU:   ');
+		writeln('opcion 1: buscar empleado por nombre o apellido');
+		writeln('opcion 2: listar todos los empleados');
+		writeln('opcion 3: listar empleados proximos a jubilarse');
+		writeln('opcion 4: anadir uno o mas empleados');
+		writeln('opcion 5: modificar la edad de un empleado');
+		writeln('opcion 6: exportar  empleados');
+		writeln('opcion 7: exportar empleados sin dni cargado');
+		writeln('opcion 0: salir del menu');
+		writeln;
+		writeln('ingrese una opcion');
+		readln(opcion);
+		case opcion of
+			1: begin
+					writeln('Ingrese un nombre o apellido para buscar datos de empleados que coincidan:    ');
+					readln(nom_ape);
+					RecorrerImprimir(arch_empleados,nom_ape); //inciso i
+				end;
+			2:	 Imprimir(arch_empleados); //inciso ii	
+			3:  ImprimirCasiJubilados(arch_empleados); //inciso iii
+			4: begin
+					writeln('elegiste la opcion 1');
+					writeln('Ingrese la cantidad de empleados que quiere anadir: ');
+					readln(num);
+					while (num>0) do begin
+						Agregar(arch_empleados);
+						num:= num-1;
+					end;
+				end;
+			5: begin
+					writeln('elegiste la opcion 2');
+					writeln('Ingrese el numero del empleado a modificar: ');
+					readln(num);
+					ModificarEdad(arch_empleados, num);
+				end;
+			6:begin
+					writeln('elegiste la opcion 3');
+					nombre_text1:= 'todos_empleados.txt';
+					writeln('El nombre del archivo de texto es: ', nombre_text1);
+					Assign(text1, nombre_text1);
+					Reset(arch_empleados);
+					Rewrite(text1);
+					while not eof(arch_empleados) do 
+						begin
+							read(arch_empleados,emp);
+							writeln(text1, emp.nombre, ' ' ,emp.apellido,' ',emp.edad,' ',emp.num_emp,' ',emp.dni);
+						end;
+					//close(arch_empleados);
+					close(text1);
+				end;
+			7:begin
+					writeln('elegiste la opcion 4');
+					nombre_text2:= 'faltaDNIEmpleado.txt';
+					writeln('El nombre del archivo de texto es: ', nombre_text2);
+					Assign(text2, nombre_text2);
+					Reset(arch_empleados);
+					Rewrite(text2);
+					while not eof(arch_empleados) do 
+						begin
+							read(arch_empleados,emp);
+							if (emp.dni = 0) then
+								writeln(text2, emp.nombre, ' ' ,emp.apellido,' ',emp.edad,' ',emp.num_emp,' ',emp.dni);
+						end;
+					//close(arch_empleados);
+					close(text2);
+				end;
+		end
+	until(opcion = 0);
+	close(arch_empleados);
+end.
+//DUDAS. 1. esta bien hacer el reset en Agregar, desp de llamar al modulo de ExisteEmpleado? 2. estan bien las condiciones del while en ModificarEdad? o el ult empleado agregado no se lee
