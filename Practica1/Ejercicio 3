@@ -1,51 +1,119 @@
 program ejer3;
 const
-	FIN = "fin";
-type   empleado = record
-				numero_empleado:integer;
+	FIN = 'fin';
+type   
+			empleado = record
+				num_emp:integer;
 				nombre: string;
 				apellido: string;
 				dni: integer;
 				edad:integer;
             end;
     archivo_empleados = file of empleado;
-var
-		arch_empleados: archivo_empleados;
-		emp: empleado;
-		nombre_path:string;
+    
+procedure LeerEmp (var emp:empleado);
 begin
-{en proceso, ejer a la mitad}
+	writeln('ingrese el apellido del empleado:   ');
+	readln(emp.apellido);
+	if (emp.apellido<>FIN) then
+		begin
+			writeln('ingrese el nombre:   ');
+			readln(emp.nombre);
+			writeln('ingrese el numero de empleado:   ');
+			readln(emp.num_emp);
+			writeln('ingrese el dni:   ');
+			readln(emp.dni);
+			writeln('ingrese la edad:   ');
+			readln(emp.edad);
+		end;
+end;
+    
+procedure CargarArchivo (var arch:archivo_empleados);
+var
+	emp: empleado;
+begin
+	reset(arch);
+	seek(arch, filesize(arch));
+	LeerEmp (emp);
+	while (emp.apellido <> FIN) do
+		begin
+			write(arch,emp);
+			LeerEmp(emp);
+		end;
+	close(arch);
+end;
+    
+procedure MostrarEmp (e:empleado);
+begin
+	writeln ('empleado:  ', e.nombre, '  ', e.apellido, ', edad ', e.edad, ', numero de empleado ', e.num_emp, ', dni ', e.dni);
+end;
+    
+procedure RecorrerImprimir (var arch:archivo_empleados; nom_ape:string);    //INCISO i
+var
+	emp: empleado;
+begin
+	reset(arch);
+	writeln;
+	writeln ('el dato ingresado coincidio con:   ');
+	while not eof (arch) do
+		begin
+			read(arch,emp);
+			if (emp.nombre = nom_ape) or (emp.apellido = nom_ape)  then  
+				MostrarEmp(emp);
+		end;
+	writeln;
+	close(arch);
+end; 
+ 
+ procedure Imprimir (var arch: archivo_empleados);   //INCISO ii
+ var
+	e: empleado;
+begin
+	reset(arch);	
+	writeln;
+	writeln('LISTADO DE TODOS LOS EMPLEADOS: ');
+	while not eof (arch) do 
+		begin
+			read(arch,e);
+			MostrarEmp(e);
+		end;
+	writeln;
+	close(arch);
+end;
+ 
+ procedure ImprimirCasiJubilados (var arch: archivo_empleados);  // INCISO iii
+ var
+	emp: empleado;
+ begin
+	reset(arch);
+	writeln('Estos son los empleados proximos a jubilarse:   ');
+	while not eof (arch) do
+		begin
+			read(arch,emp);
+			if (emp.edad > 70) then 
+				MostrarEmp(emp);
+		end;
+	writeln;
+	close(arch);
+ end;
+ 
+ 
+var
+	arch_empleados: archivo_empleados;
+	nombre_path:string;
+	nom_ape: string;
+begin
      write('ingrese el nombre del archivo:     ');
      readln(nombre_path);
      assign(arch_empleados, nombre_path);   
      rewrite(arch_empleados);
      
-    writeln('ingrese el apellido del empleado');
-	readln(emp.apellido);
-	while(emp.apellido<>FIN) do
-		begin
-			writeln('ingrese el nombre');
-			readln(emp.nombre);
-			writeln('ingrese el numero de empleado');
-			readln(emp.numero_empleado);
-			writeln('ingrese el dni');
-			readln(emp.dni);
-			writeln('ingrese la edad');
-			readln(emp.edad);
-			write(arch_empleados,emp);
-		end;
-	{cant:=fileSize(personas);
-	writeln(cant);
-	num:=filePos(personas);
-	writeln('la posicion actual en el archivo es:  ', num);
-	seek(personas,0);
-	while (EOF(personas)<>true) do
-		begin
-			read(personas,per);
-			writeln(per.nombre);
-			writeln(per.dni);
-			writeln(per.edad);
-		end;}
-     close(arch_empleados);
+	CargarArchivo(arch_empleados);	
+	writeln('Ingrese un nombre o apellido para buscar datos de empleados que coincidan:    ');
+	readln(nom_ape);
+	RecorrerImprimir(arch_empleados,nom_ape); //inciso A
+	Imprimir(arch_empleados); //inciso B
+	ImprimirCasiJubilados(arch_empleados); //inciso C
+	
+	close(arch_empleados);
 end.
-
