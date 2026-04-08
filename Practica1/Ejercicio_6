@@ -1,0 +1,155 @@
+{Agregar al menú del programa del ejercicio 5, opciones para:
+a. Añadir uno o más celulares al final del archivo con sus datos ingresados por teclado.
+b. Modificar el stock de un celular dado.
+c. Exportar el contenido del archivo binario a un archivo de texto denominado: ”SinStock.txt”, con aquellos celulares que tengan stock 0.
+NOTA: Las búsquedas deben realizarse por nombre de celular.
+}
+
+Program ejercicio5
+type
+	celular = record
+		codigo: integer;
+		nombre: String;
+		desc: String;
+		marca: String;
+		precio: integer;
+		stock_minimo: integer;
+		stock_disponible: integer;
+	end;
+	arch_celulares : File of celular;
+	text1: Text;
+	
+
+procedure ImprimirCelular (c: celular);
+begin
+	writeln('codigo: ', c.codigo, 'nombre: ', c.nombre, 'descripcion: ', c.desc);
+	writeln('marca: ', c.marca, 'precio: ', c.precio, 'stock minimo: ' , c.stock_minimo, 'stock disponible: ' , c.tock_disponible);
+end;
+
+procedure LeerCelular ( var c: celular);
+begin
+	Writeln('Ingrese el nombre');
+	readln(celu.nombre);
+	while (celu.nombre <> 'fin') do 
+		begin
+			Writeln('Ingrese el codigo');
+			readln(celu.nombre);
+			Writeln('Ingrese la marca');
+			readln(celu.marca);
+			Writeln('Ingrese la descripcion');
+			readln(celu.desc);
+			Writeln('Ingrese el precio');
+			readln(celu.precio);
+			Writeln('Ingrese el stock minimo');
+			readln(celu.stock_minimo);
+			Writeln('Ingrese el stock disponible');
+			readln(celu.stock_disponible);
+		end;
+end;
+
+
+var
+	opcion: integer
+	celu: celular;
+	
+	text1: Text;
+	text2: Text;
+	arch: arch_celulares
+	nombre_texto: String;
+	nombre_texto2: String;
+begin
+	repeat 
+		writeln;
+		writeln('MENU:   ');
+		writeln('opcion 1: crear archivo de celulares');
+		writeln('opcion 2: listar todos los celulares con stock menor al minimo');
+		writeln('opcion 3: listar celulares con descripcion dada por usuario');
+		writeln('opcion 4: exportar datos a un archivo de texto');
+		writeln('opcion 5: añadir uno o más celulares al archivo');
+		writeln('opcion 6: modificar stock de un celular');
+		writeln('opcion 7: exportar datos a un archivo de texto para celulares con stock 0');
+		writeln('opcion 0: salir del menu');
+		writeln;
+		writeln('ingrese una opcion');
+		readln(opcion);
+		writeln('ingrese el nombre del archivo binario');
+		readln(nombre_binario);
+		Assign(arch,nombre_binario);
+		
+		case opcion of 
+			1: begin
+					writeln('ingrese el nombre del archivo de carga');
+					readln(nombre_texto);
+					Assign(text1,nombre_texto);
+					Reset(text1)
+					Rewrite(arch)
+					while not eof(text1) do begin
+						readln(text1, celu.codigo, celu.precio, celu.marca);
+						readln(text1, celu.tock_minimo, celu.stock_disponible, celu.desc);
+						readln(text1, celu.nombre)
+						write(arch, celu);
+					end;
+					writeln('Archivo cargado');
+					close(arch);
+					close(text1);
+				end;
+			2: begin
+					reset(arch);
+					writeln('Listado de productos con stock menor al minimo');
+					while not eof (arch) do begin:
+						read(arch,celu);
+						if (celu.stock_disponible < celu.stock_minimo) then
+							ImprimirCelular(celu);
+					end;
+					close(arch);
+				end;
+			3: begin
+					reset(arch);
+						writeln('Listado de celulares con descripcion');
+						while not eof (arch) do begin:
+							read(arch,celu);
+							if () then
+								ImprimirCelular(celu);
+						end;
+						close(arch);
+				end;
+			4: begin
+					nombre_texto2 := celulares.txt;
+					assign(text2, nombre_texto2); 
+					reset(arch);
+					rewrite(text2); 
+					while not eof (arch) do begin
+						read (arch, celu);
+						writeln(text2,, celu.codigo, celu.precio, celu.marca);
+						writeln(text2, celu.tock_minimo, celu.stock_disponible, celu.desc);
+						writeln(text2, celu.nombre)
+					end;
+					close(arch);
+					close(text2);
+					writeln('Exportacion de datos exitosa');
+				end;
+			5:  begin
+					writeln('Ingrese los celulares de a uno, use fin de nombre para terminar la carga');
+					while (celu.nombre <> 'fin') do begin
+						LeerCelular(celu);
+						write(arch,celu);
+					end;
+					writeln('La carga fue exitosa');
+				end;
+			6:  begin
+					writeln('Ingrese el codigo del celular a modificar stock');
+					readln(cod);
+					reset(arch)
+					while (not eof (arch)) and ( <> ) do begin
+						while(cod <> celu.codigo) do begin
+							read(arch,celu);
+						end;
+					end;
+				end;
+			7:  begin
+			
+				end;
+				
+				
+	until (opcion=0)
+end.
