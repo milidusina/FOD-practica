@@ -1,0 +1,81 @@
+{Una empresa posee un archivo que contiene información sobre los ingresos percibidos por diferentes
+empleados en concepto de comisión. De cada empleado se conoce: código de empleado, nombre y
+monto de la comisión.
+La información del archivo se encuentra ordenada por código de empleado, y cada empleado puede
+aparecer más de una vez en el archivo de comisiones.
+Se solicita realizar un procedimiento que reciba el archivo anteriormente descrito y lo compacte. Como
+resultado, deberá generar un nuevo archivo en el cual cada empleado aparezca una única vez, con el
+valor total acumulado de sus comisiones.
+Nota: No se conoce a priori la cantidad de empleados. Además, el archivo debe ser recorrido una única
+vez.}
+
+program ejer1_pratica2
+
+const 
+	valor_alto= 9999;
+
+type
+	empleado= record
+		nombre:String;
+		cod: integer;
+		comi: real;
+	end;
+	archivo_empleados: File of empleados;
+	
+procedure Leer (var arch_det :  archivo_empleados; 
+				var emp : empleado);
+var
+	if (not eof (arch_det)) then
+		read (arch_det, emp);
+	else
+		emp.cod = valor_alto;
+begin
+
+	
+	
+procedure crear (var arch: archivo_empleados);
+var
+	nombre_mae: String;
+begin
+	nombre_mae = 'archivo empleados';
+	assign(arch, nombre_mae);
+	rewrite(arch);
+	close(arch);
+end;
+
+	
+procedure compactarArchivo (var arch_det :  archivo_empleados;
+							var arch :  archivo_empleados );
+var
+	emp: empleado;
+	comision: integer;
+	actual: integer;
+begin	
+	reset(arch_det);
+	reset(arch);
+	leer(arch_det,emp);
+	while (emp.cod <> valor_alto) do begin
+		comision := 0;
+		actual := emp
+		write('Empleado: ', emp.nombre, ' con codigo: ', emp.cod);
+		while (actual.cod = emp.cod) do begin
+			comision := comision + emp.comi
+			leer(arch_det, emp);
+		end;
+		actual.comi:= comision;
+		writeln('su comision es: ' , comision);
+		write(arch,actual);
+	end;
+	close(arch)
+	close(arch_detalle);
+end;
+
+
+var
+	arch_detalle: archivo_empleados;
+	arch: archivo_empleados;
+begin
+	crear(arch);
+	compactarArchivo(arch, arch_detalle);
+
+end.
