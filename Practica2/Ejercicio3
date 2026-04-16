@@ -1,0 +1,116 @@
+{A partir de información sobre la alfabetización en la Argentina, se desea actualizar un archivo maestro
+que contiene los siguientes datos: nombre de la provincia, cantidad de personas alfabetizadas y total de
+encuestados.
+Para ello, se dispone de dos archivos detalle, provenientes de distintas agencias de censo. Cada uno de
+estos archivos contiene: nombre de la provincia, código de localidad, cantidad de personas alfabetizadas
+y cantidad de encuestados.
+Se solicita desarrollar los módulos necesarios para actualizar el archivo maestro a partir de la
+información contenida en ambos archivos detalle.
+Nota: Todos los archivos están ordenados por nombre de provincia. En los archivos detalle pueden
+existir cero, uno o más registros por cada provincia.}
+
+program ejer3;
+
+const
+	valorAlto = 'ZZZ';
+
+type
+	datos = record
+		prov : String;
+		cant_p : integer;
+		total_enc : integer;
+	end;
+	
+	datos_det = record
+		prov : String;
+		cod_localidad : integer;
+		cant_p : integer;
+		cant_enc : integer;
+	end;
+	
+	archivo_alfabetizacion = File of datos;
+	archivo_detalle = File of datos_det;
+ 
+//--------------PROCEDURES------------------
+	
+procedure LeerDet (var arch_det :  archivo_detalle; 
+				var x : datos_det);
+begin
+	if (not eof (arch_det)) then
+		read (arch_det, x)
+	else
+		x.prov := valorAlto;
+end;
+
+//--------------------
+	
+procedure minimo (var r1, r2, min: datos_det; var det1, det2: archivo_detalle);
+begin
+	if (r1.prov < r2.prov) then begin
+		min := r1;
+		LeerDet(det1,r1);
+	end
+	else begin
+		min := r2;
+		LeerDet(det2, r2);
+	end;
+end;
+//--------------------
+procedure actualizar (var mae: archivo_alfabetizacion; var det1,det2: archivo_detalle);
+var
+	regd1, regd2, min: datos_det;
+	regm: datos;
+	prov_actual : String;
+	cantP: integer;
+	cantE : integer;
+begin
+	reset(mae);
+	reset(det1);
+	reset(det2);
+	
+	LeerDet(det1,regd1);	
+	LeerDet(det2,regd2);
+	minimo(regd1,regd2,min,det1,det2);
+	
+	read(mae,regm);
+	while(min.prov <> valorAlto) do
+		begin
+			prov_actual:= min.prov;
+			cantE := 0;
+			cantP :=0;
+			
+			while (min.prov = prov_actual) do
+				begin
+					cantP := cantP + min.cant_p;
+					cantE := cantE + min.cant_enc;
+					minimo(regd1,regd2,min,det1,det2);
+				end;
+				
+			while(regm.prov <> min.prov) do 
+				begin
+					read(mae,regm);
+				end;
+			regm.cant_p := regm.cant_p + cantP;
+			regm.total_enc := regm.total_enc + cantE;		
+			
+			seek(mae, filepos(mae)-1);
+			write(mae, regm);
+		end;
+	close(mae);
+	close(det1);
+	close(det2);
+end;
+	
+//----------------------------MAIN--------------------------------
+
+var
+	det1, det2: archivo_detalle;
+	mae : archivo_alfabetizacion;
+	
+Begin
+	assign(mae,'maestro');
+	assign(det1, 'detalle1');
+	assign(det2, 'detalle2');
+	actualizar(mae,det1,det2);
+End.
+	
