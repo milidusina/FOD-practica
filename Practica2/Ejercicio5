@@ -1,0 +1,184 @@
+{Suponga que trabaja en una oficina donde se encuentra instalada una red local (LAN). La misma está
+conformada por 5 máquinas conectadas entre sí y a un servidor central.
+Semanalmente, cada máquina genera un archivo detalle de logs que registra las sesiones abiertas por los
+usuarios en cada terminal, junto con su duración. Cada archivo contiene los siguientes campos: código de
+usuario, fecha y tiempo de sesión.
+Se solicita desarrollar un procedimiento que reciba los archivos detalle y genere un archivo maestro con la
+siguiente información: código de usuario, fecha y tiempo total de sesiones abiertas.
+Notas:
+● Cada archivo detalle está ordenado por código de usuario y fecha.
+● Un usuario puede iniciar más de una sesión el mismo día, ya sea en la misma máquina o en
+diferentes máquinas.
+● El archivo maestro debe crearse en la siguiente ubicación física: /var/log.}
+
+
+program ejer5;
+const
+	dimF = 2;
+	valorAlto = 999;
+type
+	rangoDias = 1..31;
+	rangoMeses = 1..12;
+	rangoAnios = 1980..2026;
+	rangoVector = 1..dimF;
+	
+	fechaa= record
+		dia: rangoDias;
+		mes: rangoMeses;
+		anio:rangoAnios;
+	end;
+	
+	info_detalle = record
+		cod: integer;
+		fecha: fechaa;
+		tiempo_sesion: real;
+	end;
+	
+	info_maestro = record
+		cod: integer;
+		fecha: fechaa;
+		tiempo_total: real;
+	end;
+	
+	archivo_maestro = File of info_maestro;
+	archivo_detalles = File of info_detalle;
+	
+	vector_detalles = array[rangoVector] of archivo_detalles;
+	vector_sesiones = array[rangoVector] of info_detalle;
+	
+//----------------------PROCEDURES---------------------------------
+
+	procedure LeerDetalle (var arch_det: archivo_detalles;   var sesion: info_detalle);
+		begin
+			if (not eof(arch_det)) then
+				read(arch_det, sesion)
+			else
+				sesion.cod := valorAlto;
+		end;
+//---
+	function compararFechas (fecha1, fecha2: fechaa): boolean;
+	var
+		ok: boolean;
+	begin
+		if (fecha1.dia = fecha2.dia) and (fecha1.mes = fecha2.mes) and (fecha1.anio = fecha2.anio) then
+			ok:= true
+		else
+			ok:= false;
+		compararFechas := ok;
+	end;
+//-----
+	function fechaMenor (fecha1: fechaa; fecha2:fechaa):fechaa;
+	begin
+		if (fecha1.anio < fecha2.anio) then
+			fechaMenor := fecha1
+		else if (fecha1.anio > fecha2.anio) then
+			fechaMenor := fecha2
+		else begin
+			if (fecha1.mes < fecha2.mes) then
+				fechaMenor := fecha1
+			else if (fecha1.mes > fecha2.mes) then
+				fechaMenor := fecha2
+			else begin
+				if (fecha1.dia < fecha2.dia) then
+					fechaMenor := fecha1
+				else	
+					fechaMenor := fecha2;
+			end;
+		end;
+	end;
+	
+//-----
+	procedure inicializarDetalles (var vector: vector_detalles; var vec_sesiones: vector_sesiones);
+		var
+			i: integer;
+			nombre : string;
+		begin
+			for i := 1 to dimF do 
+				begin
+					writeln('Ingrese el nombre del archivo numero:  ', i);
+					readln(nombre);
+					assign (vector[i], nombre);
+					reset(vector[i]);
+					leerDetalle(vector[i],vec_sesiones[i]);
+				end;
+		end;
+//-----------
+	procedure cerrarDetalles (var vector : vector_detalles);
+		var
+			i: integer;
+		begin
+			for i := 1 to dimF do 
+				begin
+					close(vector[i]);
+				end;
+		end;
+//----------		
+	procedure minimo (var vector: vector_detalles; var vec_sesiones: vector_sesiones; var min : info_detalle);
+		var
+			i,pos : integer;
+			fecha: fechaa;
+			fecha_menor : fechaa;
+		begin
+			min.cod := valorAlto;
+			fecha.dia:= 31;
+			fecha.mes := 12;
+			fecha.anio:= 2026;
+			min.fecha := fecha;
+			for i := 1 to dimF do 
+				begin
+					if (vec_sesiones[i].cod < min.cod) then
+					begin
+						fecha_menor := fechaMenor(vec_sesiones[i].fecha, min.fecha);
+						if (compararFechas(vec_sesiones[i].fecha, fecha_menor)) then
+							begin
+								min:= vec_sesiones[i];
+								pos := i;
+							end;
+					end;
+				end;
+			if (min.cod <> valorAlto) then
+				leerDetalle(vector[pos], vec_sesiones[pos]);
+		end;
+//---------
+	procedure generarArchivoMaestro(var mae: archivo_maestro ;  var vec_det : vector_detalles ); 
+		var
+			sesiones : vector_sesiones;
+			min: info_detalle;
+			dato_actual: info_maestro;
+		begin
+			inicializarDetalles(vec_det,sesiones);
+			minimo(vec_det,sesiones,min);
+			while (min.cod <> valorAlto) do
+				begin
+					dato_actual.cod := min.cod;
+					while (min.cod = dato_actual.cod) do
+						begin 
+							dato_actual.fecha := min.fecha;
+							dato_actual.tiempo_total := 0;
+							while ((min.cod = dato_actual.cod) and (compararFechas(min.fecha, dato_actual.fecha))) do
+								begin
+									dato_actual.tiempo_total := dato_actual.tiempo_total +  min.tiempo_sesion;
+									minimo(vec_det,sesiones,min);
+								end;
+							write(mae,dato_actual);
+						end;
+				end;
+			close(mae);
+			cerrarDetalles(vec_det);
+		end;
+	
+	
+//----------------MAIN--------------------------------
+
+var
+	mae: archivo_maestro;
+	vec_det: vector_detalles;
+begin
+	assign(mae,'/var/log.');  // asi? o  assing(mae,'/var/log/maestro.dat')
+	rewrite (mae);
+	generarArchivoMaestro(mae,vec_det);
+
+end.	
+	
+	
+	
