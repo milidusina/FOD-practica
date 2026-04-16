@@ -1,0 +1,143 @@
+{Se dispone de un archivo maestro con información de los alumnos de la Facultad de Informática. Cada
+registro del archivo maestro contiene: código de alumno, apellido, nombre, cantidad de cursadas
+aprobadas y cantidad de materias con final aprobado. El archivo maestro está ordenado por código de
+alumno.
+Además, se dispone de dos archivos detalle con información sobre el desempeño académico de los
+alumnos: un archivo de cursadas y un archivo de exámenes finales.
+El archivo de cursadas contiene información sobre las materias cursadas por los alumnos. Cada registro
+incluye: código de alumno, código de materia, año de cursada y resultado (solo interesa determinar si la
+cursada fue aprobada o desaprobada).
+Por su parte, el archivo de exámenes finales contiene información sobre los exámenes rendidos. Cada
+registro incluye: código de alumno, código de materia, fecha del examen y nota obtenida.
+Ambos archivos detalle están ordenados por código de alumno y código de materia, y pueden contener
+cero, uno o más registros por alumno.
+Un alumno puede cursar una misma materia varias veces, así como también rendir el examen final en
+múltiples ocasiones.
+Se solicita desarrollar un programa que actualice el archivo maestro, modificando la cantidad de cursadas
+aprobadas y la cantidad de materias con final aprobado, a partir de la información contenida en los archivos
+detalle.
+Las reglas de actualización son las siguientes:
+● Si un alumno aprueba una cursada, se incrementa en uno la cantidad de cursadas aprobadas.
+● Si un alumno aprueba un examen final (nota mayor o igual a 4), se incrementa en uno la cantidad de
+materias con final aprobado.
+Notas:
+● Los archivos deben procesarse en un único recorrido.
+● No es necesario verificar inconsistencias en la información de los archivos detalle. En particular, se
+garantiza que un alumno no puede aprobar más de una vez la cursada de una misma materia. De
+manera análoga, tampoco puede aprobar más de una vez el examen final de una misma materia.}
+
+program ejer7;
+const
+	valor_alto = 9999;
+type
+	alumno = record
+		cod: integer;
+		nombre: String;
+		apellido : String;
+		cant_cursadas : integer;
+		cant_finales : integer;
+	end;
+	
+	cursadas = record
+		cod: integer;
+		cod_materia: integer;
+		anio : rangoAnio;
+		resultado : boolean;
+	end;
+
+	finales = record
+		cod: integer;
+		cod_materia: integer;
+		fecha : regFecha;
+		nota : integer;
+	end;
+	
+	archivo_cursadas = File of cursadas;
+	archivo_finales = File of finales;
+	archivo_maestro = File of alumno;
+
+//-----------------------PROCEDURES-------------------------
+
+procedure leerCursada (var arch_det :  archivo_cursadas; 
+					var c : cursadas);
+begin
+	if (not eof (arch_det)) then
+		read (arch_det, c)
+	else
+		c.cod := valor_alto;
+end;
+
+//--------------------
+
+procedure leerFinal (var arch_det :  archivo_finales; 
+					var f : finales);
+begin
+	if (not eof (arch_det)) then
+		read (arch_det, f)
+	else
+		f.cod := valor_alto;
+end;
+
+//--------------------
+procedure leerMae (var arch_mae : archivo_maestro; 
+					  var a: alumno);
+begin
+	if (not eof (arch_mae)) then
+		read (arch_mae, a)
+	else
+		a.cod_localidad := valor_alto;
+end;
+
+//----------------------------
+
+
+procedure actualizarArchivoMaestro (var mae: archivo_maestro; var arch_cursadas : archivo_cursadas
+									var arch_finales: archivo_finales);
+	var
+		regM : alumno;
+		f: finales;
+		c : cursadas;
+		actual: alumno;
+		huboCambios : boolean;
+	begin
+		reset (mae);
+		reset (arch_cursadas);
+		reset (arch_finales);
+		
+		leerMae(mae,regM);
+		actual:= regM;
+		leerCursada(arch_cursadas,c);     
+		leerFinal(arch_finales, f);
+		while (actual.cod <> valor_alto) do
+			begin
+				huboCambios := false;
+				while ((c.cod <> valor_alto) and (c.cod = actual.cod)) do begin
+					regM.cant_cursadas := regM.cant_cursadas + 1;
+					huboCambios := true;
+					leerCursada(arch_cursadas,c);
+				end;
+				while ((f.cod <> valor_alto) and (f.cod = actual.cod)) do begin
+					if (f.nota >= 4) then
+						regM.cant_finales := regM.cant_finales + 1;
+						huboCambios := true;
+					leerFinal(arch_finales,f);
+				end;
+				if (huboCambios) then begin
+					seek (mae, pos(mae)-1);
+					write (mae, regM);
+				end;
+			end;
+		close(mae);
+		close(arch_cursadas);
+		close(arch_finales);
+	end;
+
+//-------------------------MAIN------------------------------
+
+var
+	mae : archivo_maestro;
+	cursadas : archivo_cursadas;
+	finales : archivo_finales;
+begin
+	actualizarArchivoMaestro(mae,cursadas,finales);
+End.
