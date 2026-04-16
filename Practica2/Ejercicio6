@@ -1,0 +1,191 @@
+{Se desea modelar la información necesaria para un sistema de recuento de casos de COVID del
+Ministerio de Salud de la Provincia de Buenos Aires.
+Diariamente se reciben 10 archivos detalle provenientes de distintos municipios. La información contenida
+en cada uno de ellos es la siguiente: código de localidad, código de cepa, cantidad de casos activos,
+cantidad de casos nuevos, cantidad de casos recuperados y cantidad de casos fallecidos.
+El ministerio cuenta con un archivo maestro que almacena la siguiente información: código de localidad,
+nombre de la localidad, código de cepa, nombre de la cepa, cantidad de casos activos, cantidad de casos
+nuevos, cantidad de casos recuperados y cantidad de casos fallecidos.
+Todos los archivos están ordenados por código de localidad y código de cepa.
+Se solicita desarrollar el procedimiento que permita actualizar el archivo maestro a partir de los 10 archivos
+detalle, teniendo en cuenta el siguiente criterio:
+● A la cantidad de casos fallecidos del maestro se le debe sumar el valor recibido en el detalle.
+● A la cantidad de casos recuperados del maestro se le debe sumar el valor recibido en el detalle.
+● La cantidad de casos activos del maestro debe actualizarse con el valor recibido en el detalle.
+● La cantidad de casos nuevos del maestro debe actualizarse con el valor recibido en el detalle.
+Realizar las declaraciones necesarias, el programa principal y los procedimientos que se requieran para
+efectuar la actualización solicitada.
+*Además, informar la cantidad de localidades que poseen más de 50 casos activos, independientemente de
+que hayan sido actualizadas o no.
+* }
+
+program ejer6;
+const
+	dimF = 10;
+	valor_alto = 9999;
+type
+	rangoVector = 1..dimF;
+	localidad1 = record
+		cod_localidad : integer;
+		cod_cepa : integer;
+		cant_activos: integer;
+		cant_nuevos: integer;
+		cant_recuperados: integer;
+		cant_fallecidos: integer;
+	end;
+	
+	localidad2 = record
+		cod_localidad : integer;
+		nombre_localidad : String;
+		nombre_cepa : String;
+		cant_activos: integer;
+		cant_nuevos: integer;
+		cant_recuperados: integer;
+		cant_fallecidos: integer;
+	end;
+	
+	archivo_maestro = File of localidad2;
+	archivo_detalle = File of localidad1;
+	//ordenados por codigo de localidad y codigo de cepa;
+	
+	vector_detalle = array[rangoVector] of archivo_detalle;
+	vector_localidades = array[rangoVector] of localidad1;
+
+
+//---------------PROCEDURE---------------------------------------------
+
+procedure leerDet (var arch_det :  archivo_detalle; 
+					var l : localidad);
+begin
+	if (not eof (arch_det)) then
+		read (arch_det, l)
+	else
+		l.cod_localidad := valor_alto;
+end;
+
+//-----
+
+procedure leerMae (var arch_mae : archivo_maestro; 
+					  var m: localidad2);
+begin
+	if (not eof (arch_mae)) then
+		read (arch_mae, m)
+	else
+		m.cod_localidad := valor_alto;
+end;
+
+
+procedure inicializarDetalles (var vector: vector_detalles; var vec_localidad: vector_localidades);
+		var
+			i: integer;
+			nombre : string;
+		begin
+			for i := 1 to dimF do 
+				begin
+					writeln('Ingrese el nombre del archivo numero:  ', i);
+					readln(nombre);
+					assign (vector[i], nombre);
+					reset(vector[i]);
+					leerDet(vector[i],vec_localidad[i]);
+				end;
+		end;
+//------
+
+
+procedure cerrarDetalles (var vector: vector_detalles);
+		var
+			i: integer;
+		begin
+			for i := 1 to dimF do 
+				begin
+					close(vector[i]);
+				end;
+		end;
+//------
+
+procedure minimo (var vec: vector_detalles; var vec_localidad : vector_localidades; var min: localidad1);
+	var
+		i, pos : integer;
+	begin
+		min.cod_localidad := valor_alto;
+		min.cod_cepa := valor_alto;
+		for i := 1 to dimF do
+			begin
+				if (vec_localidad[i].cod_localidad < min.cod_localidad ) or 
+					((vec_localidad[i].cod_localidad = min.cod_localidad) and 
+					(vec_localidad[i].cod_cepa < min.cod_cepa))then
+					begin
+						if (vec_localidad[i].cod_cepa < min.cod_cepa ); then 
+							begin	
+								min := vec_localidad[i];
+								pos := i;
+							end;
+					end;
+			
+			end;
+		if (min.cod_localidad <> valor_alto) then
+			read (vec[pos], vec_localidades[pos]);
+	end;
+//---
+procedure actualizarRegistro (var regM: localidad2 ; min: localidad1);
+begin
+	regM.cant_fallecidos := regM.cant_fallecidos + min.cant_fallecidos;
+	regM.cant_recuperados := regM.cant_recuperados + min.cant_recuperados;
+	regM.cant_activos := min.cant_activos;
+	regM.cant_nuevos := min.cant_nuevos;
+end;
+
+//---------------
+procedure actualizarArchivoMaestro (var mae: archivo_maestro; var vec: vector_detalles);
+	var
+		vec_localidad: vector_localidades;
+		regM: localidad2;
+		min : localidad1;
+		cant_localidades_mayor_50: integer
+	begin
+		reset(mae);
+		inicializarDetalles (vec,vec_localidad);
+		cant_localidades_mayor_50 := 0;
+		minimo(vec, vec_localidad, min);
+		leerMae (mae, regM);
+		
+		while (regM <> valor_alto do)
+			begin
+				if (min.cod_localidad <> valor_alto) and (min.cod_cepa <> valor_alto) then
+					begin 
+					//usan un actual para guardar ambos codigos, no entiendo xq
+						while (regM.cod_localidad <> min.cod_localidad) and 
+								(regM.cod_cepa <> min.cod_cepa)do 
+							begin
+								if (regM.cant_activos > 50)	then
+									cant_localidades_mayor_50 := cant_localidades_mayor_50 + 1;
+								leerMae (mae,regM);
+							end;
+						while (regM.cod_localidad = min.cod_localidad) and 
+								(regM.cod_cepa = min.cod_cepa)do
+							begin
+								actualizarRegistro(regM,min);
+								minimo(vec, vec_localidad, min);
+							end;
+						if (regM.cant_activos > 50)	then
+							cant_localidades_mayor_50 := cant_localidades_mayor_50 + 1;
+						seek (mae,pos(mae)-1);
+						write (mae, regM);
+						leerMae (mae,regM);
+					end;
+			end;
+		writeln('La cantidad de localidades que poseen mas de 50 casos activos es: ' + cantt_localidades_mayor_50);
+		cerrarDetalles(vec);
+		close(mae);
+	end;
+
+//-------------MAIN---------------
+var
+	mae: archivo_maestro;
+	vec_det: vector_detalles;
+begin
+	actualizarArchivoMaestro(mae,vec_det);
+begin
+
+
+End.
