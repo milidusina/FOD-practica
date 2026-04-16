@@ -1,0 +1,157 @@
+{Se cuenta con un archivo maestro de productos de una cadena de venta de alimentos congelados. De
+cada producto se almacena la siguiente información: código de producto, nombre, descripción, stock
+disponible, stock mínimo y precio.
+Diariamente se recibe un archivo detalle por cada una de las 30 sucursales de la cadena. Cada archivo
+detalle contiene: código de producto y cantidad vendida.
+Se solicita desarrollar un procedimiento que reciba los 30 archivos detalle y actualice el stock del archivo
+maestro.
+Además, deberá generarse un archivo de texto que informe, para aquellos productos cuyo stock
+disponible se encuentre por debajo del stock mínimo, los siguientes datos: nombre del producto,
+descripción, stock disponible y precio.
+Analizar alternativas para la generación de dicho informe: realizarlo en el mismo procedimiento de
+actualización o en un procedimiento separado, indicando las ventajas y desventajas de cada opción.
+Nota: Todos los archivos se encuentran ordenados por código de producto. En cada archivo detalle
+puede haber cero, uno o más registros para un mismo producto.}
+
+
+program ejer4;
+
+const 
+	valorAlto = 9999;
+	dimF = 30;
+type
+rango = 1..dimF;
+producto = record
+		cod:integer;
+		nombre: String;
+		precio:real;
+		stock_actual: integer;
+		stock_min:integer;
+		desc: String;
+	end;
+	
+	venta = record
+		cod: integer;
+		cant_vendida: integer;
+	end;
+	
+	archivo_detalle = File of venta;
+	archivo_maestro = File of producto;
+	
+	vector_ventas = array[rango] of venta;
+	vector_detalles = array[rango] of archivo_detalle;
+	
+//-----------------PROCEDURES-------------------
+
+procedure leerDet (var arch_det :  archivo_detalle; 
+					var v : venta);
+begin
+	if (not eof (arch_det)) then
+		read (arch_det, v)
+	else
+		v.cod := valorAlto;
+end;
+
+//-----
+
+procedure leerMae (var arch_mae : archivo_maestro; 
+					  var p: producto);
+begin
+	if (not eof (arch_mae)) then
+		read (arch_mae, p)
+	else
+		p.cod := valorAlto;
+end;
+
+//----
+
+procedure minimo (var min: venta; var vec_det : vector_detalles; var vec_ventas: vector_ventas);
+var
+	i, pos: integer;
+begin
+	min.cod := valorAlto;
+	for i:= 1 to 30 do
+		begin
+			if (vec_ventas[i].cod < min.cod) then
+				min.cod:= vec_ventas[i].cod;
+				pos := i;
+		end;
+	if (min.cod <> valorAlto) then
+		LeerDet(vec_det[pos], vec_ventas[pos]);
+end;
+
+
+procedure inicializarDetalles (var vec_det : vector_detalles;  var vec_ventas : vector_ventas);
+var
+	i: integer;
+	nombre : String;
+begin
+	for i := 1 to dimF do 
+		begin
+			writeln('Ingrese el nombre del archivo numero:  ', i);
+			readln(nombre);
+			assign (vec_det[i], nombre);
+			reset(vec_det[i]);
+			leerDet(vec_det[i],vec_ventas[i]);
+		end;
+end;
+
+
+procedure actualizar (var mae: archivo_maestro; var vec_det : vector_detalles);
+var
+	vec_ventas : vector_ventas;
+	min: venta;
+	arch_texto : Text;
+	nombre : String;
+	regM : producto;
+	codigoActual : integer;
+	cantVendidas: integer;
+begin
+	reset(mae);
+	writeln ('Asignele un nombre al archivo de texto a exportar:  ');
+	readln (nombre);
+	assign (arch_texto, nombre);
+	rewrite (arch_texto);
+	
+	minimo(min,vec_det,vec_ventas);
+	leerMae (mae,regM);
+	
+	while (regM.cod <> valorAlto) do begin 
+		codigoActual := min.cod;
+		cantVendidas := 0;
+		
+		while (min.cod <> valorAlto) and (min.cod = codigoActual) do begin
+			cantVendidas := cantVendidas + min.cant_vendida;
+			minimo(min,vec_det,vec_ventas);
+		end;
+		while (regM.cod <> codigoActual) do begin
+			if (regM.stock_actual < regM.stock_min) then 
+				writeln(arch_texto, regM.nombre, '', regM.desc, '', regM.stock_actual, '', regM.precio);
+			leerMae(mae, regM);
+		end;
+		
+		seek(mae, filepos(mae) - 1);
+		regM.stock_actual := regM.stock_actual - cantVendidas;
+		write(mae, regM);
+	
+		if (regM.stock_actual < regM.stock_min) then 
+			writeln(arch_texto, regM.nombre, '', regM.desc, '', regM.stock_actual, '', regM.precio);
+		leerMae(mae, regM);
+	end;
+	
+	close(mae);
+	close(arch_texto);
+end;
+	
+	
+//---------------------MAIN-----------------------
+var 
+	vec_det: vector_detalles;
+	mae : archivo_maestro;
+	
+Begin
+	//se dispone del vector cargado con los archivos detalle
+	assign(mae,'maestro');
+	actualizar(mae, vec_det);
+
+End.
