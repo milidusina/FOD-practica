@@ -1,0 +1,129 @@
+{Se desea implementar un sistema de gestión de flores utilizando un archivo con reutilización de espacio.
+● Las bajas lógicas se realizan apilando los registros eliminados.
+● Las altas deben reutilizar los espacios libres disponibles antes de agregar nuevos registros al final del archivo.
+● El registro en la posición 0 se utiliza como cabecera de la pila de registros borrados. 
+*Política de reutilización:
+● Si el campo código del registro cabecera es 0, significa que no hay registros borrados disponibles.
+● Si el campo código es -N, indica que el próximo registro libre se encuentra en la posición N del archivo.
+● Cada registro borrado debe almacenar en su campo codigo el valor negativo que apunte al siguiente registro libre, formando así una pila enlazada.
+		a. Implementación requerida 
+Abre el archivo y agrega una flor, recibida como parámetro, respetando la política de reutilización de espacio descripta 
+		b. Listado del archivo. Realizar un procedimiento que liste el contenido del archivo omitiendo las flores eliminadas (esdecir, aquellos registros que forman parte de la pila de libres).
+Se permite modificar o agregar estructuras auxiliares si se considera necesario para obtener correctamente el listado.
+		c. Implemente el siguiente módulo: Abre el archivo y elimina la flor recibida como parámetro manteniendo la política descripta anteriormente}
+program ejer4;
+const
+	valor_alto = 9999;
+type
+	reg_flor = record
+			nombre: String[45];
+			codigo: integer;
+	end;
+	archivo_flores = file of reg_flor;
+
+//------------------PROCEDURES--------------------------
+procedure leerMae (var mae: archivo_flores; var reg: reg_flor);
+begin
+	if (not eof(mae) ) then
+		read(mae,reg)
+	else
+		reg.codigo := valor_alto;
+end;
+//--
+
+procedure agregarFlor (var mae: archivo_flores; nueva_flor: reg_flor);
+var
+	pos : integer;
+	regM : reg_flor;
+begin
+	reset(mae);
+	leerMae (mae, regM);  //leemos la cabecera
+	if (regM.codigo < 0 ) then begin  //si apunta a un lugar vacio
+		pos := regM.codigo*-1;          //guardamos la posicion del lugar
+		seek(mae, pos);               //vamos a esa posiciones
+		leerMae(mae,regM); 		//leemos la posicion vacia para obtener el siguiente puntero 
+		seek(mae, filePos(mae)-1);   //volvemos uno atras xq el read avanzo automaticamente
+		write(mae,nueva_flor);
+		seek(mae,0);  //volvemos a la cabecera
+		write(mae, regM);   //guardamos la posicion del siguiente espacio vacio
+		writeln('Se guardo el registro en un espacio vacío. Reutilizamos espacio');
+	end
+	else  begin
+		seek(mae, fileSize(mae));
+		write(mae,nueva_flor);
+		writeln('No se encontro ningún espacio vacío.  El registro se agrego al final del archivo');
+	end;
+	close(mae);
+end;
+//---
+procedure listadoContenido (var mae: archivo_flores);
+var
+	reg: reg_flor;
+begin
+	reset(mae);
+	seek(mae,1);
+	leerMae(mae,reg);
+	while (reg.codigo <> valor_alto) do
+		begin	
+			if (reg.codigo > 0) then //no es un puntero a otro registro enlazado de los borrados
+				writeln('Flor : ', reg.nombre , ' con el codigo : ', reg.codigo);
+		end;
+	close(mae);
+end;
+//----
+procedure eliminarFlor (var mae: archivo_flores; flor: reg_flor);
+var
+	posicion,cabecera: integer;
+	regM: reg_flor;
+begin
+	reset(mae);
+	leerMae(mae,regM);
+	cabecera := regM.codigo;
+	while (regM.codigo <> valor_alto) and (regM.codigo <> flor.codigo) do
+	begin
+		leerMae(mae,regM);
+	end;	
+	if (regM.codigo = flor.codigo) then
+	begin
+			seek(mae,filePos(mae)-1);
+			posicion := filePos(mae)*-1;  //guardo la posicion del registro a borrar en negativo
+			regM.codigo := cabecera;
+			write(mae,regM); // guardamos la cabecera anterior en el reg borrado para enlazar la lista
+			seek(mae,0);
+			regM.codigo := posicion;
+			write(mae,regM);
+	end
+	else writeln('No se encontro la flor');
+	close(mae);
+end;
+//------------------MAIN---------------------------
+var
+	mae: archivo_flores;
+	opcion: integer;
+	flor: reg_flor;
+begin
+	reset(mae);
+	writeln('Seleccione una de las siguientes opciones');
+	writeln('Opción 1: Dar de alta una flor');
+	writeln('Opción 2: Listar el contenido del archivo de flores');
+	writeln('Opción 3: Dar de baja una flor');
+	readln(opcion);
+	case opcion of
+		1:	begin
+			writeln('Ingrese el nombre de la nueva flor');
+			readln(flor.nombre);
+			writeln('Ingrese el codigo de la  nueva flor');
+			readln(flor.codigo);
+			agregarFlor(mae,flor);
+		end;
+		2:	listadoContenido(mae);
+		3: begin
+			writeln('Ingrese el nombre de la flor a eliminar');
+			readln(flor.nombre);
+			writeln('Ingrese el nombre de la flor a eliminar');
+			readln(flor.codigo);
+			eliminarFlor(mae,flor);
+		end;
+	end;
+	close(mae);	
+end.
