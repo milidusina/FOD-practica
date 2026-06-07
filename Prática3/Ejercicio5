@@ -1,0 +1,108 @@
+{Una cadena de tiendas de indumentaria dispone de un archivo maestro no ordenado que
+contiene la información de las prendas que se encuentran a la venta. De cada prenda se registran
+los siguientes datos: cod_prenda, descripción, colores, tipo_prenda, stock y precio_unitario.
+Debido a un cambio de temporada, es necesario actualizar las prendas disponibles. Para ello, se
+recibe un archivo detalle que contiene los códigos (cod_prenda) de aquellas prendas que
+quedarán obsoletas. Se deberá implementar un procedimiento que reciba ambos archivos y
+realice la baja lógica de las prendas indicadas; para ello, se deberá modificar el campo stock de la
+prenda correspondiente asignándole un valor negativo como marca de eliminación.
+Adicionalmente, se deberá implementar otro procedimiento que permita efectivizar las bajas
+lógicas realizadas sobre el archivo maestro. Para ello, se deberá crear un archivo auxiliar en el cual
+se copien únicamente aquellas prendas que no estén marcadas como eliminadas (es decir,
+aquellas cuyo stock sea mayor o igual a cero).
+Finalmente, una vez completado el proceso de compactación, el archivo auxiliar deberá
+reemplazar al archivo maestro original, adoptando su mismo nombre.}
+program ejer5;
+const 
+valor_alto = 9999;
+type
+	prenda = record
+		cod : integer;
+		desc : string;
+		colores: integer;
+		tipo_prenda: string;
+		stock: integer;
+		precio: real;
+	end;
+	archivo_maestro = File of prenda;
+	archivo_detalle = File of integer;
+
+//------------------PROCEDURES--------------------------
+procedure leerMae (var mae: archivo_maestro; var reg: prenda);
+begin
+	if (not eof(mae) ) then
+		read(mae,reg)
+	else
+		reg.cod := valor_alto;
+end;
+//--
+procedure leerDet (var mae: archivo_detalle; var reg: integer);
+begin
+	if (not eof(mae) ) then
+		read(mae,reg)
+	else
+		reg := valor_alto;
+end;
+//--
+procedure bajas_logicas (var mae: archivo_maestro; var det: archivo_detalle);
+var
+	cod: integer;
+	reg: prenda;
+begin
+	//los registros del detalle son los que tenemos que borrar del maestro
+	reset(mae);
+	reset(det);
+	//la baja se realiza asignando un valor negativo al stock como marca
+	leerDet(det,cod);
+	while (cod <> valor_alto) do 
+		begin
+				leerMae(mae,reg);
+				while (reg.cod <> valor_alto) and (reg.cod <> cod) do
+					begin
+						leerMae(mae,reg);
+					end;
+				reg.cod := reg.cod * -1;
+				seek(mae, filePos(mae)-1);
+				write(mae,reg);
+				leerDet(det,cod);
+		end;
+	close(mae);
+	close(det);
+end;
+
+procedure bajas_fisicas (var mae: archivo_maestro; var nuevo: archivo_maestro; nombre_archivo: string);
+var
+	reg: prenda;
+begin
+	reset(mae);
+	rewrite(nuevo);  // esto nose si va aca
+	leerMae(mae,reg);
+	while (reg.cod <> valor_alto) do 
+		begin
+			if (reg.cod > 0) then
+				write(nuevo,reg);
+			leerMae(mae,reg);	
+		end;
+	close(mae);
+	close(nuevo);
+	erase(mae);
+	rename(nuevo, nombre_archivo);
+end;
+
+//------------------MAIN---------------------------
+
+var
+	mae: archivo_maestro;
+	nuevo_mae: archivo_maestro;
+	det : archivo_detalle;
+	nombre_archivo : string;
+begin
+	nombre_archivo := 'negocio';
+	assign(mae,nombre_archivo);
+	assign(nuevo_mae,'nuevo maestro');
+	bajas_logicas(mae,det);
+	rewrite(nuevo_mae);
+	bajas_fisicas(mae,nuevo_mae,nombre_archivo);
+	
+	// hacemos 2 assign de la misma variable
+end.
