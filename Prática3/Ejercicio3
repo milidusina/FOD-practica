@@ -1,0 +1,241 @@
+{ Realizar un programa que gestione un archivo de libros de una librería. De cada libro se registra:
+código, género, título, autor, cantidad de páginas y precio. 
+El programa debe presentar un menú con las siguientes opciones:
+a. Crear el archivo y cargarlo con datos ingresados por teclado, utilizando la técnica de lista invertida para recuperar espacio libre en el archivo.
+b. Abrir el archivo existente y permitir su mantenimiento mediante las siguientes operaciones:
+i. Dar de alta un libro leyendo la información desde el teclado. Para esta operación, en caso de ser posible, deberá recuperarse el espacio libre usando la lista invertida.
+ii. Modificar los datos de un libro leyendo la información desde el teclado. El código del libro no puede ser modificado.
+iii. Eliminar un libro cuyo código es ingresado por teclado.
+c. Exportar el contenido del archivo de libros a un archivo de texto llamados “libros.txt”, excluyendo los registros marcados como borrados.
+NOTAS:
+● Debe utilizar una lista invertida para la recuperación del espacio libre.
+○ El primer registro del archivo se utiliza como cabecera de la lista.
+■ El campo código de la cabecera tiene el valor cero (0) si no hay espacio libre.
+■ Si el campo código de la cabecera tiene un valor negativo, indica la posición del primer registro a reutilizar.
+○ Los registros libres (aquellos marcados como borrados) utilizan el campo código como enlace, almacenando la posición en forma negativa del siguiente registro en la lista invertida
+○ En la operación de alta:
+			■ Si la cabecera indica que hay espacio libre, se debe reutilizar el primer registro disponible. Además, se debe actualizar la cabecera con la siguiente posición en la lista invertida de espacios libres.
+			■ Si la cabecera indica que no hay espacio libre, se debe agregar el nuevo registro al final del archivo.
+○ En la operación de baja:
+			■ El registro borrado se debe incorporar a la lista invertida de espacios libres. Al ser una lista invertida (o pila), el último registro borrado es el próximo a ser reutilizado.
+			Para ello, en el registro borrado se almacena el valor actual de la cabecera, mientras que la cabecera se actualiza con la posición (en valor negativo) del registro borrado.
+● Tanto en la creación como en la apertura el nombre del archivo debe ser proporcionado por el usuario}
+program ejer3;
+const
+	valor_alto = 9999;
+type
+	regLibro = record
+		cod: integer;
+		genero: String;
+		titulo : String;
+		autor: String;
+		cant_pag: integer;
+		precio: real;
+	end;
+	archivo_maestro = File of regLibro;
+//-------------------------------PROCEDURES---------------------
+procedure leerLibro (var book: regLibro);
+begin
+	writeln('Ingrese el codigo');
+	readln(book.cod);
+	if (book.cod > 0) then begin
+			writeln('Ingrese el genero');
+			readln(book.genero);
+			writeln('Ingrese el titulo');
+			readln(book.titulo);
+			writeln('Ingrese el autor');
+			readln(book.autor);
+			writeln('Ingrese la cantidad de paginas');
+			readln(book.cant_pag);
+			writeln('Ingrese el precio');
+			readln(book.precio);
+	end;
+end;
+//--
+procedure leerLibroCambio (var book: regLibro; cod: integer);
+begin
+	book.cod:= cod;
+	if (book.cod > 0) then begin
+			writeln('Ingrese el genero');
+			readln(book.genero);
+			writeln('Ingrese el titulo');
+			readln(book.titulo);
+			writeln('Ingrese el autor');
+			readln(book.autor);
+			writeln('Ingrese la cantidad de paginas');
+			readln(book.cant_pag);
+			writeln('Ingrese el precio');
+			readln(book.precio);
+	end;
+end;
+//---------------
+procedure leerReg (var mae: archivo_maestro; var l: regLibro);
+begin
+	if (not eof(mae)) then
+		read(mae,l)
+	else
+		l.cod := valor_alto;
+end;
+//------------------------------------------------------------------------
+procedure cargarArchivo (var mae: archivo_maestro);
+var
+	libro: regLibro;
+begin
+	libro.cod := 0;
+	reset(mae);
+	write(mae,libro);
+	leerLibro(libro);
+	while (libro.cod <> 0 ) do begin
+		write(mae,libro);
+		leerLibro(libro);
+	end;
+	close(mae);
+end;
+//------------------
+procedure agregarRegistro (var mae: archivo_maestro);
+var
+	libro: regLibro;
+	actual: regLibro;
+begin
+	reset(mae);
+	leerLibro(libro);
+	leerReg(mae,actual);
+	// primero usamos actual para leer la cabecera, desp para leer el lugar vacio y guardar el prox lugar vacio para actualizar la cabecera
+	if (actual.cod < 0) then begin
+		seek(mae, actual.cod *-1); //lo multiplicamos por -1 para volver positivo el número de la cabecera
+		leerReg(mae,actual);  //actual queda con la posicion del proximo archivo eliminado (osea la proxima posicion vacia)
+		seek(mae, filePos(mae)-1);  //retrocedemos una posicion porque avanzo automaticamente en el read anterior
+		write(mae,libro);  //guardamos el registro q queremos insertar en el archivo
+		// reset(mae); no podemos hacer reset sin hacer close antes
+		seek(mae, 0);
+		write(mae,actual);  //actual tiene la proxima cabecera
+	end
+	else begin
+		seek(mae, fileSize(mae));  // me equivoque y puse fileSize(mae)-1    si ponemos -1 accedemos al ultimo registro y sobreescribimos
+		write(mae,libro);
+	end;
+	close(mae);
+end;
+//----------------
+procedure modificarRegistro ( var mae: archivo_maestro);
+var
+	libro: regLibro;
+	actual: regLibro;
+	cod: integer;
+begin
+	writeln('Ingrese el codigo del libro a modificar');
+	readln(cod);
+	reset(mae);
+	leerReg(mae,actual);
+	while (actual.cod <> cod) and  (actual.cod <> valor_alto) do begin
+		leerReg(mae,actual);
+	end;
+	if (actual.cod = cod) then begin
+		writeln('Se encontro el libro a modificar');
+		writeln('Ingrese los nuevos datos para el libro');
+		leerLibroCambio(libro,cod);
+		actual.titulo := libro.titulo;    // a libro modificamos campo a campo, sin codigo
+		actual.genero := libro.genero;
+		actual.autor := libro.autor;
+		actual.cant_pag := libro.cant_pag;
+		actual.precio:= libro.precio;
+		seek(mae,filePos(mae)-1);
+		write(mae,actual);
+	end
+	else writeln('No se encontro el libro a modificar');
+	close(mae);
+end;
+//---------------
+procedure eliminarRegistro (var mae: archivo_maestro);
+var
+	cod, pos: integer;
+	actual: regLibro;
+	cabecera:reglibro;
+begin
+	writeln('Ingrese el codigo del libro a eliminar:  ');
+	readln(cod);
+	reset(mae);
+	leerReg(mae, actual);
+	cabecera := actual;
+	while (actual.cod <> cod) and (actual.cod <> valor_alto) do begin  //preguntamos x valor alto
+			leerReg(mae, actual);
+	end;
+	if  (actual.cod = cod) then begin
+		pos := filePos(mae)-1;
+		seek (mae, pos);
+		write(mae,cabecera);
+		seek(mae,0);
+		actual.cod := (pos *-1);
+		write(mae,actual);
+	end
+	else writeln('No se encontro el libro a eliminar');
+	close(mae);
+end;
+//-----------------------------------------------------------
+procedure mantenimiento (var mae: archivo_maestro);
+var
+	opcion: integer;
+begin
+	writeln('Ingrese una opcion:');
+	writeln('Opcion 1 = Dar de alta un libro');
+	writeln('Opcion 2 = Modificar un libro');
+	writeln('Opcion 3 = Eliminar un libro');
+	readln(opcion);
+	case opcion of
+		1: agregarRegistro(mae);
+		2: modificarRegistro(mae);
+		3: eliminarRegistro(mae);
+	end;
+end;
+//-------------------------
+procedure exportarArchivoTexto (var mae: archivo_maestro; var arch_texto: Text);
+var
+	libro : regLibro;
+	nombre_texto : string;
+begin
+	writeln('ingrese el nombre del archivo de carga');
+	readln(nombre_texto);
+	assign(arch_texto,nombre_texto);
+	rewrite(arch_texto);
+	reset(mae);
+	leerReg(mae,libro);
+	while (libro.cod <> valor_alto) do begin    
+			if (libro.cod > 0) then begin
+					writeln(arch_texto, libro.cod, libro.precio,'',libro.cant_pag,'',libro.genero);
+					writeln(arch_texto, libro.titulo);
+					writeln(arch_texto, libro.autor);
+			leerReg(mae,libro);
+			end;
+	end;
+	close(mae);
+	close(arch_texto);
+	writeln('Exportacion de datos exitosa');
+end;
+
+//---------------------MAIN------------------------------
+var
+	opcion: integer;
+	arch_texto: Text;
+	nom_mae: String;
+	mae: archivo_maestro;
+begin
+	writeln('Ingrese una opcion:');
+	writeln('Opcion 1 = Crear archivo y cargarlo con datos ingresados por teclado');
+	writeln('Opcion 2 = Abrir archivo y hacer mantenimiento');
+	writeln('Opcion 3 = Exportar el archivo a un documento .txt');
+	readln(opcion);
+	case opcion of
+		1: begin
+			writeln('Ingrese el nombre del archivo');
+			readln(nom_mae);
+			assign(mae,nom_mae);
+			rewrite(mae); 
+			cargarArchivo(mae);
+			close(mae);
+		end;
+		2: mantenimiento(mae);
+		3:exportarArchivoTexto(mae,arch_texto);
+		end;
+	close(mae);
+end.
+	
