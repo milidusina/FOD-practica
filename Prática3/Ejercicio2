@@ -1,0 +1,92 @@
+{Definir un programa que genere un archivo con registros de longitud fija con información de
+productos de un comercio. Los datos se ingresan por teclado y de cada producto se almacena:
+código de producto, nombre, descripción, precio y stock disponible. Implementar un
+procedimiento que, a partir del archivo de datos generado, realice la baja lógica de todos
+aquellos productos cuyo stock disponible sea igual a 0.
+La baja lógica debe indicarse marcando el registro con un carácter especial que se sitúa como
+prefijo en algún campo de tipo string a su elección. Por ejemplo, se puede anteponer el carácter @
+al nombre del producto: ‘@Arroz Gallo 1K’.
+}
+program ejer2;
+const
+	valor_alto = 9999;
+type
+	producto = record
+		cod: integer;
+		nombre: String;
+		desc: String;
+		stock : integer;
+		precio: real;
+	end;
+	archivo_maestro = File of producto;
+//--------------------------------PROCEDURE---------------------------------
+procedure	leerProducto (var p : producto);
+begin
+	writeln('Ingrese el codigo');
+	readln(p.cod);
+	if (p.cod <> 0) then begin
+			writeln('Ingrese el nombre');
+			readln(p.nombre);
+			writeln('Ingrese la descripcion');
+			readln(p.desc);
+			writeln('Ingrese el stock');
+			readln(p.stock);
+			writeln('Ingrese el precio');
+			readln(p.precio);
+	end;
+end;
+//--
+procedure leerMae (var mae: archivo_maestro; var reg: producto);
+begin
+	if (not eof (mae)) then
+		read(mae,reg)
+	else
+		reg.cod := valor_alto;
+end;
+//--------
+procedure bajaLogica (var mae: archivo_maestro);
+var
+	nom: String;
+	regM : producto;
+begin
+	reset(mae);
+	leerMae(mae,regM);
+	while (regM.cod <> valor_alto) do begin
+			if (regM.stock = 0) then begin
+				nom := regM.nombre;
+				regM.nombre := '@' + nom;  // esta bien?
+				seek(mae, filePos(mae)-1);
+				write(mae,regM);
+			end;
+			leerMae(mae,regM);
+	end;
+	close(mae);
+end;
+
+{Definir un programa que genere un archivo con registros de longitud fija con información de productos de un comercio. 
+* Los datos se ingresan por teclado y de cada producto se almacena:
+código de producto, nombre, descripción, precio y stock disponible. 
+* Implementar un	procedimiento que, a partir del archivo de datos generado, realice la baja lógica de todos aquellos productos cuyo stock disponible sea igual a 0.
+La baja lógica debe indicarse marcando el registro con un carácter especial que se sitúa como prefijo en algún campo de tipo string a su elección. 
+* Por ejemplo, se puede anteponer el carácter @ al nombre del producto: ‘@Arroz Gallo 1K’.}
+
+//-----------------------MAIN-----------------------------
+var
+	mae: archivo_maestro;
+	nombre: String;
+	prod: producto;
+begin
+	writeln('Ingrese un nombre para el archivo');
+	readln(nombre);
+	assign(mae, nombre); //siempre en el principal
+	rewrite(mae);
+	writeln('Ingrese un producto: (ingrese cero como codigo para finalizar la carga) ');
+	leerProducto(prod);
+	while (prod.cod <> 0) do begin
+		writeln('Ingrese un producto: (ingrese cero como codigo para finalizar la carga) ');
+		leerProducto(prod);
+		write(mae,prod);
+	end;
+	close(mae);
+	bajaLogica(mae); 
+end.
