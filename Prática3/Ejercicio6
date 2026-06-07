@@ -1,0 +1,150 @@
+{Se cuenta con un archivo que almacena información sobre especies de aves en peligro de
+extinción. De cada especie se registran los siguientes datos: código, nombre de la especie, familia,
+descripción y zona geográfica. El archivo no se encuentra ordenado por ningún criterio.
+Se desea desarrollar un programa que permita eliminar especies de aves extintas. Para ello, el
+programa deberá contar con dos procedimientos:
+Un procedimiento que, dado el código de una especie, la marque como borrada (baja lógica). En
+caso de querer eliminar múltiples especies, este procedimiento podrá invocarse repetidamente.
+Un procedimiento que realice la compactación del archivo (baja física), eliminando
+definitivamente aquellas especies marcadas como borradas. Para ello, cada vez que se elimine un
+registro, se deberá reemplazar su posición con el último registro del archivo y luego eliminar dicho
+último registro, evitando así dejar espacios vacíos y registros duplicados.
+Implemente además una variante de este procedimiento de compactación en la cual el archivo
+sea truncado una única vez al finalizar el proceso.}
+
+program ejer6;
+const
+	valor_alto = 9999;
+type
+	reg_ave = record
+			cod: integer;
+			especie: string;
+			familia: string;
+			desc: string;
+			zona: string;
+		end;
+		archivo_maestro = file of reg_ave;
+	//------------------PROCEDURES--------------------------
+	procedure leerMae (var mae: archivo_maestro; var reg: reg_ave);
+	begin
+	if (not eof(mae) ) then
+		read(mae,reg)
+	else
+		reg.cod := valor_alto;
+end;
+	//---------
+	procedure bajas_logicas (var mae: archivo_maestro; var cant_eliminados: integer; cod: integer);
+	var
+		reg: reg_ave;
+	begin
+		reset(mae);
+		leerMae(mae,reg);
+		while (reg.cod <> valor_alto) and (reg.cod <> cod) do
+			begin
+				leerMae(mae,reg);
+			end;
+		if (reg.cod = cod) then
+			begin
+				writeln('Se encontro el ave exitosamente');
+				seek(mae,filePos(mae)-1);
+				reg.cod := reg.cod * -1;
+				write(mae,reg);
+			end
+		else writeln('No se encontro el ave a borrar');
+		close(mae);
+	end;
+		{ Debo recorrer el archivo hasta hacer la baja fisica de los eliminados, y en cada posicion de eliminacion logica, tomo el ultimo elemento y lo intercambio por el ultimo. 
+		* Ese ultimo puede no ser valido, por lo que debo buscar uno que si lo sea. 
+		
+  Se presenta una situacion donde puede haber mas de un elemento al final del archivo eliminados de manera logica, 
+  asi q para trabajar de esta manera, me desago de ellos antes de reemplazar un eliminado por uno del final 
+  * ej: [valido, valido, eliminado, valido, eliminado,eliminado]
+  
+  al querer reemplazar el primer eliminado por el ultimo estaria cometiendo un error, por ende debo buscar hasta tener uno valido en el final para poder reemplazar.
+  pero pueden ocurrir dos casos: 
+  *  Donde a partir de un elimando todos despues de ese sean eliminados [valido, eliminado, eliminado , eliminado]
+  * ,o el ya mencionado, entonces debemos manejar las posiciones del reg (pos) a reemplazar y el reg (pos) que encontre como valido.
+
+  Por ultimo, puede ocurrir el caso que todos los archivos esten eliminados, en ese caso trunco al principio, lo manejo con contadores.
+  * }
+ procedure bajas_fisicas (var mae: archivo_maestro; var cant_eliminados: integer);
+var
+	reg, ultimo_reg: reg_ave;
+	pos_a_llenar : integer;
+	borrados: integer;
+	tamano : integer;
+begin
+	reset(mae);
+	borrados := 0;
+	tamano := fileSize(mae)-1;  //guardamos el tamaño en un var aparte, xq vamos a ir borrando y el tamano no se actualiza hasta hacer el truncate. fileSize nos va a dar siempre lo mismo
+		// si intercambiamos por el último, tenemos q asegurarnos de que el ultimo no sea tmb un borrado logico, por eso eliminamos los ultimos primero
+	if (cant_eliminados > 0) then
+	begin
+		if (cant_eliminados = tamano) then
+			begin
+				writeln('Todos los registros existentes tienen baja lógica. Se va a vaciar por completo el archivo');
+				truncate(mae);
+		end
+		else begin
+			leerMae(mae,reg);
+			while (reg.cod <> valor_alto) and (borrados <> cant_eliminados) do
+			begin
+				if (reg.cod < 0) then
+				begin
+					pos_a_llenar := filePos(mae)-1;
+					seek(mae,tamano);
+					read(mae,ultimo_reg);
+					while (ultimo_reg.cod < 0) do 
+					begin
+							tamano := tamano -1;
+							seek(mae,tamano);
+							leerMae(mae,ultimo_reg);
+					end;
+					if (pos_a_llenar >= tamano) then
+					begin
+						// seek(mae, pos_a_llenar);  esta opcion esta mal?
+						// truncate(mae);
+						borrados := cant_eliminados //para salir del while y ya poder truncar el archivo 
+					end;
+				end
+				else 
+					begin
+						seek(mae,pos_a_llenar);
+						write(mae,ultimo_reg);
+						borrados := borrados + 1;
+						tamano := tamano -1;
+					end;
+			end;
+			leerMae(mae,reg);
+		end;
+			seek(mae, tamano+1);
+			truncate(mae);
+	end;
+	close(mae);
+	end;
+	
+	//------------------MAIN---------------------------
+var
+	mae: archivo_maestro;
+	opcion, codigo, cant_eliminados : integer;
+begin
+	reset(mae);
+	opcion := 0;
+	cant_eliminados := 0;
+	while (opcion <> 3) do begin
+		writeln('Seleccione una de las siguientes opciones');
+		writeln('Opción 1: Dar de baja un ave extinta');
+		writeln('Opción 2: Compactar archivo y eliminar especies extintas');
+		writeln('Opción 3: Cerrar panel de opciones');
+		readln(opcion);
+		case opcion of
+		1:	begin
+			writeln('Ingrese el codigo del ave');
+			readln(codigo);
+			bajas_logicas(mae,cant_eliminados,codigo);
+		end;
+		2:	bajas_fisicas(mae,cant_eliminados);
+		end;
+	close(mae);	
+	end;
+end.
