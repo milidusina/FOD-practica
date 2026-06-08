@@ -1,0 +1,179 @@
+{Se cuenta con un archivo con información de las diferentes distribuciones de linux existentes. De
+cada distribución se conoce: nombre, año de lanzamiento, número de versión del kernel, cantidad
+de desarrolladores y descripción. El nombre de las distribuciones no puede repetirse. Este archivo
+debe ser mantenido realizando bajas lógicas y utilizando la técnica de reutilización de espacio libre
+llamada lista invertida. Escriba la definición de las estructuras de datos necesarias y los siguientes procedimientos:
+		a. BuscarDistribucion: módulo que recibe por parámetro el archivo, un nombre de
+distribución y devuelve la posición dentro del archivo donde se encuentra el registro
+correspondiente a la distribución dada (si existe) o devuelve -1 en caso de que no
+exista..
+		b. AltaDistribucion: módulo que recibe como parámetro el archivo y el registro que
+contiene los datos de una nueva distribución, y se encarga de agregar la distribución al
+archivo reutilizando espacio disponible en caso de que exista. El control de unicidad lo
+debe realizar utilizando el módulo anterior. En caso de que la distribución que se quiere
+agregar ya exista se debe informar “ya existe la distribución”.
+		c. BajaDistribucion: módulo que recibe como parámetro el archivo y el nombre de una
+distribución, y se encarga de dar de baja lógicamente la distribución dada. Para marcar
+una distribución como borrada se debe utilizar el campo cantidad de desarrolladores
+para mantener actualizada la lista invertida. Para verificar que la distribución a borrar
+exista debe utilizar el módulo BuscarDistribucion. En caso de no existir se debe informar
+“Distribución no existente”.}
+program ejer7;
+const
+	valor_alto = 'ZZZZ';
+type
+	distribucion = record
+			nombre: string;
+			anio: integer;
+			version: integer;
+			cant_desarrolladores: integer;
+			desc : string;
+	end;
+	archivo_maestro = File of distribucion;
+		
+
+	//------------------PROCEDURES--------------------------
+procedure leerDistribucion(var reg : distribucion);
+begin
+  writeln(' Ingrese el nombre de distribucion de linux : ');
+  readln(reg.nombre);
+  if ( reg.nombre <> valor_alto)then
+    begin
+      writeln(' Ingrese el año de lanzamiento de la  distribucion de linux : ');
+      readln(reg.anio);
+      writeln(' Ingrese la version de kernel: ');
+      readln(reg.version);
+      writeln(' Ingrese la cantidad de desarrolladores : ');
+      readln(reg.cant_desarrolladores);
+      writeln(' Ingrese la descripcion : ');
+      readln(reg.desc);
+    end; 
+end; 
+//----
+	procedure leerMae (var mae: archivo_maestro; var reg: distribucion);
+	begin
+	if (not eof(mae) ) then
+		read(mae,reg)
+	else
+		reg.nombre := valor_alto;
+end;
+//--
+
+procedure buscar_distribucion (var mae: archivo_maestro; var pos: integer; nombre:string);
+var
+	reg: distribucion;
+begin
+	reset(mae);
+	leerMae(mae,reg);
+	while (reg.nombre <> valor_alto) and (reg.nombre <> nombre) do
+	begin
+			leerMae(mae,reg);
+	end;
+	if (reg.nombre = nombre) then
+		begin	
+		writeln('Se encontro el registro buscado');
+		pos := filePos(mae)-1;
+		end
+	else 
+		begin
+		writeln('No se encontro el registro buscado');
+		pos := -1;
+		end;
+	close(mae);
+end;
+//--------
+procedure alta_distribucion (var mae: archivo_maestro; nuevo: distribucion);
+var
+	reg: distribucion;
+	existe, pos: integer;
+begin
+	reset(mae);
+	buscar_distribucion(mae,existe,nuevo.nombre);
+	if (existe = -1) then
+		begin
+		leerMae(mae,reg);
+		if (reg.cant_desarrolladores > 0) then
+			begin
+				seek(mae, fileSize(mae)-1);
+				write(mae,nuevo);
+				writeln('El registro se guardo al final del archivo');
+			end
+		else 
+			begin
+				pos := reg.cant_desarrolladores *-1;
+				seek(mae,pos);
+				leerMae(mae,reg);
+				seek(mae, filePos(mae)-1);
+				write(mae,nuevo);
+				seek(mae,0);
+				write(mae,reg);
+				writeln('El registro se guardo en un espacio libre del archivo');
+			end;
+		end
+	else
+		writeln('La distribucion ya existia en el archivo. No se volvio a guardar');
+end;
+//----------
+procedure baja_distribucion_logica(var mae: archivo_maestro; nombre: string);
+var
+	registro, cabecera: distribucion;
+	existe, posicion_a_borrar: integer;
+begin
+	buscar_distribucion(mae,existe,nombre);
+	if (existe = -1) then  //esto significa q no existe
+			writeln('La distribucion no existia en el archivo. No se puede borrar')
+	else
+	begin
+		reset(mae);
+		posicion_a_borrar :=  existe * -1;
+		leerMae(mae,cabecera); 
+		seek(mae, existe);   //no podes hacer    seek posicion_a_borrar     xq es un numero negativo
+		leerMae(mae,registro); //guardamos el q vamor a borrar
+		registro.cant_desarrolladores := cabecera.cant_desarrolladores;
+		seek(mae, existe);
+		write(mae,registro); //lo guardamos sin perder su informacion y con la posicion del prox registro borrado
+		seek(mae,0);
+		cabecera.cant_desarrolladores := posicion_a_borrar;
+		write(mae,cabecera);
+		close(mae);
+	end;
+end;
+	//------------------MAIN---------------------------
+var
+	mae: archivo_maestro;
+	opcion, pos: integer;
+	nombre: string;
+	dis: distribucion;
+begin
+	reset(mae);
+	opcion := 0;
+	while (opcion <> 3) do begin
+		writeln('Seleccione una de las siguientes opciones');
+		writeln('Opción 1: Buscar una distribucion');
+		writeln('Opción 2: Dar de alta una distribucion');
+		writeln('Opción 3: Da de baja una distribucion');
+		readln(opcion);
+		case opcion of
+		1:	begin
+			writeln('Ingrese el nombre de la distribucion a buscar');
+			readln(nombre);
+			buscar_distribucion(mae,pos,nombre);
+			writeln('La posicion del registro buscado es  ');
+			writeln(pos);
+			end;
+		2:	begin
+			writeln('Ingrese la nueva distribucion ');
+			leerDistribucion(dis);
+			alta_distribucion(mae,dis);
+			end;
+		3:  begin
+			writeln('Ingrese el nombre de la distribucion a eliminar');
+			readln(nombre);
+			baja_distribucion_logica(mae,nombre);
+			end;
+		end;
+	close(mae);	
+	end;
+end.
+
+	
