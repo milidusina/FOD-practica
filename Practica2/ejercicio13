@@ -1,0 +1,108 @@
+{Suponga que usted es administrador de un servidor de correo electrónico. En los logs del mismo
+(información guardada acerca de los movimientos que ocurren en el server) que se encuentra en la
+siguiente ruta: /var/log/logmail.dat se guarda la siguiente información: nro_usuario, nombreUsuario,
+nombre, apellido, cantidadMailEnviados. Diariamente el servidor de correo genera un archivo con la
+siguiente información: nro_usuario, cuentaDestino, cuerpoMensaje. Este archivo representa todos los
+correos enviados por los usuarios en un día determinado. Ambos archivos están ordenados por
+nro_usuario y se sabe que un usuario puede enviar cero, uno o más mails por día.
+a. Realice el procedimiento necesario para actualizar la información del log en un día particular.
+Defina las estructuras de datos que utilice su procedimiento.
+b. Genere un archivo de texto que contenga el siguiente informe dado un archivo detalle de un
+día determinado:
+nro_usuarioX…………..cantidadMensajesEnviados
+………….
+nro_usuarioX+n………..cantidadMensajesEnviados
+Nota: tener en cuenta que en el listado deberán aparecer todos los usuarios que existen en
+el sistema. Considere la implementación de esta opción de las siguientes maneras:
+i- Como un procedimiento separado del punto a).
+ii- En el mismo procedimiento de actualización del punto a). Qué cambios se
+requieren en el procedimiento del punto a) para realizar el informe en el mismo
+recorrido?}
+
+program ejer13;
+const
+	valor_alto = 9999;
+type
+	info_mae = record
+		num_usuario : integer;
+		nombre_usuario : String;
+		nombre: String;
+		apellido: String;
+		cant_mail_enviados :  integer;
+	end;
+	
+	info_det = record   //representa todos los mails enviados por los usuario, en un dia determinado,
+		num_usuario : integer;
+		cuenta_destino: 
+		cuerpo_mensaje : String;
+	end;
+	
+	archivo_maestro = File of info_mae;
+	archivo_detalle = File of info_det;
+
+//-----------------------PROCEDURES-------------------------
+
+procedure leerMae (var mae: archivo:maestro; var regM: info_mae);
+begin
+	if (not eof(mae)) then
+		read(mae,regM)
+	else
+		regM.num_usuario : valor_alto;
+end;
+
+procedure leerDet (var det: archivo_detalle; var regD: info_det);
+begin
+	if (not eof (det)) then
+		read(det,regD);
+	else
+		regD.num_usuario := valor_alto;
+end;
+
+procedure asignacionArchivoMaestro (va mae: archivo_maestro);
+var
+begin
+	assign (mae, '/var/log/logmail.dat');
+end;
+//_----------------------
+
+procedure actualizarArchivoMaestro (var mae : archivo_maestro; var arch_detalle: archivo_detalle; var texto1: Text);
+var
+	regM: info_mae;
+	det1: info_det;
+	usuario_actual: integer;
+	
+begin
+	reset(mae);
+	reset(arch_detalle);
+	leerMae(mae,regM);
+	leerDet(arch_detalle;,det1)
+	while (regM.num_usuario <> valor_alto) do begin
+			while (det1.num_usuario <> valor_alto) do begin
+				usuario_actual := det1.num_usuario;
+				while (usuario_actual <> regM.num_usuario) do begin
+						writeln(texto1,'numero de usuario ', regM.num_usuario, '....................  cantidad mensajes enviados', regM.cant_mail_enviados);
+						leerMae(mae,regM);
+				end;
+				while (usuario_actual = det1.num_usuario) do begin
+					regM.cant_mail_enviados := 	regM.cant_mail_enviados  + 1;
+					writeln(texto1,'numero de usuario ', regM.num_usuario, '....................  cantidad mensajes enviados', regM.cant_mail_enviados);
+					leerDet(arch_detalle,det1)
+				end;
+				writeln('numero de usuario ', regM.num_usuario, '....................  cantidad mensajes enviados', regM.cant_mail_enviados);
+				leerMae(mae,regM);
+			end;
+	end;
+	close(mae);
+	close(arch_detalle);
+end;
+
+
+//------------------------MAIN----------------------------------------
+
+var
+		mae : archivo_maestro;
+		det_diario : archivo_detalle;
+begin
+	asignacionArchivoMaestro(mae);
+	actualizarArchivoMaestro(mae,det_diario);
+end;
