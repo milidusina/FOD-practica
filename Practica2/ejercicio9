@@ -1,0 +1,111 @@
+{Se cuenta con un archivo que posee información de las ventas que realiza una empresa a los diferentes
+clientes. Se necesita obtener un reporte con las ventas organizadas por cliente. Para ello, se deberá
+informar por pantalla: los datos personales del cliente, el total mensual (mes por mes cuánto compró) y
+finalmente el monto total comprado en el año por el cliente. Además, al finalizar el reporte, se debe
+informar el monto total de ventas obtenido por la empresa.
+El formato del archivo maestro está dado por: cliente (cod cliente, nombre y apellido), año, mes, día y
+monto de la venta. El orden del archivo está dado por: cod cliente, año y mes.
+Nota: tenga en cuenta que puede haber meses en los que los clientes no realizaron compras. No es
+necesario que informe tales meses en el reporte.
+}
+
+program ejer9;
+const
+	valor_alto = 9999;
+type
+	rangoDia = 1..31;
+	rangoMes = 1..12;
+	rangoAnio = 1950..2026;
+	
+	regCliente = record
+		cod: integer;
+		nombre: String;
+		apellido : String;
+	end;
+	
+	regFecha = record
+		dia: rangoDia;
+		mes: rangoMes;
+		anio:  rangoAnio;
+	end;
+	
+	info_mae = record
+			cliente : regCliente;
+			fecha: regFecha;
+			monto: real;
+	end;
+		
+		archivo_maestro = File of info_mae;
+
+//_-------------------------------PROCEDURE--------------------------------
+
+
+procedure imprimirCliente (cli : regCliente);
+begin
+	writeln('El cliente actual tiene codigo:   ', cli.cod);
+	writeln('El cliente actual se llama    ', cli.nombre, '  ', cli.apellido);
+end;
+
+//-------
+
+procedure leerMae (var mae: archivo_maestro; var regM : info_mae);
+begin
+	if (not eof (mae)) then 
+		read(mae,regM)
+	else
+		regM.cliente.cod := valor_alto;
+end;
+
+//----------------
+
+procedure generarReporte (var mae: archivo_maestro);
+var
+		ventas_empresa: real;
+		regM : info_mae;
+		clienteActual : regCliente;
+		anioActual : rangoAnio;  
+		mesActual: rangoMes;     
+		ventas_mensuales: real;
+		ventas_anuales: real;
+begin
+		reset(mae);
+		leerMae(mae,regM);
+		ventas_empresa := 0;
+		while (regM.cliente.cod <> valor_alto) do begin
+				clienteActual := regM.cliente;
+				imprimirCliente(clienteActual);
+				while (  clienteActual.cod = regM.cliente.cod)   do begin
+						ventas_anuales :=0;
+						anioActual := regM.fecha.anio;   //antes hacia fechaActual := regM.fecha;   ambos reg es mejor asi o independientes? xq siempre q cambiar el año va a cambiar el mes
+						while  (  clienteActual.cod = regM.cliente.cod)  and (anioActual = regM.fecha.anio) do begin
+								ventas_mensuales := 0;
+								mesActual := regM.fecha.mes;
+								while  (  clienteActual.cod = regM.cliente.cod) and   (anioActual = regM.fecha.anio) and  (mesActual = regM.fecha.mes)	do begin
+										ventas_mensuales := ventas_mensuales + regM.monto;
+										leerMae(mae,regM);
+								end;
+								if (ventas_mensuales > 0) then begin
+										writeln('Las ventas del mes numero ' , mesActual, ' acumulan un total de  ' , ventas_mensuales);
+										ventas_anuales := ventas_anuales + ventas_mensuales;
+								end;
+								//leerMae(mae,regM);        error mio q me di cuenta solita
+						end;
+						writeln('Las ventas del año ' , anioActual, 'acumulan un total de   ', ventas_anuales);
+						ventas_empresa := ventas_empresa + ventas_anuales;
+						//clienteActual := regM.regCliente;           error mio q me di cuenta solita
+				end;
+		end;
+		writeln('Las ventas historicas de la empresa acumulan un monto total de  ' , ventas_empresa);
+	close(mae);
+end;	
+
+//_-------------------------------MAIN--------------------------------
+var
+	mae : archivo_maestro;
+	nombre_arch : String;
+begin
+	writeln('Ingrese un nombre para el archivo maestro de ventas');
+	readln(nombre_arch);
+	assign(mae,nombre_arch); 
+	generarReporte(mae);
+end.
