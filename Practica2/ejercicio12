@@ -1,0 +1,149 @@
+{La empresa de software ‘X’ posee un servidor web donde se encuentra alojado el sitio web de la
+organización. En dicho servidor, se almacenan en un archivo todos los accesos que se realizan al sitio.
+La información que se almacena en el archivo es la siguiente: año, mes, día, idUsuario y tiempo de
+acceso al sitio de la organización. El archivo se encuentra ordenado por los siguientes criterios: año,
+mes, día e idUsuario.
+Se debe realizar un procedimiento que genere un informe en pantalla, para ello se indicará el año
+calendario sobre el cual debe realizar el informe. El mismo debe respetar el formato mostrado a
+continuación:
+Año : ---
+Mes:-- 1
+día:-- 1
+idUsuario 1 Tiempo Total de acceso en el dia 1 mes 1
+--------
+idUsuario N Tiempo total de acceso en el dia 1 mes 1
+Tiempo total acceso dia 1 mes 1
+-------------
+día N
+idUsuario 1 Tiempo Total de acceso en el dia N mes 1
+--------
+idUsuario N Tiempo total de acceso en el dia N mes 1
+Tiempo total acceso dia N mes 1
+Total tiempo de acceso mes 1
+------
+Mes 12
+día 1
+idUsuario 1 Tiempo Total de acceso en el dia 1 mes 12
+--------
+idUsuario N Tiempo total de acceso en el dia 1 mes 12
+Tiempo total acceso dia 1 mes 12
+-------------
+día N
+idUsuario 1 Tiempo Total de acceso en el dia N mes 12
+--------
+idUsuario N Tiempo total de acceso en el dia N mes 12
+Tiempo total acceso dia N mes 12
+Total tiempo de acceso mes 12
+Total tiempo de acceso año
+Se deberá tener en cuenta las siguientes aclaraciones:
+● El año sobre el cual realizará el informe de accesos debe leerse desde el teclado.
+● El año puede no existir en el archivo, en tal caso, debe informarse en pantalla “año no
+encontrado”.
+● Debe definir las estructuras de datos necesarias.
+● El recorrido del archivo debe realizarse una única vez procesando sólo la información necesaria.
+} 
+
+program ejer12;
+
+const
+	valor_alto = 2027;   //asi esta bien? xq tengo q usar un valor adentro del rango declarado para años
+	//o uso otro campo del registro como el id para el corte del eof???
+type
+	rangoDia = 1..31;
+	rangoMes = 1..12;
+	rangoAnio = 1950..2027;
+	
+	info_mae = record	
+		anio:  rangoAnio;
+		mes: rangoMes;
+		dia: rangoDia;
+		id_usuario : integer;
+		tiempo_acceso : integer;  // o tiene q ser real?
+	end;
+
+	archivo_maestro = File of info_mae;
+
+//-----------------------PROCEDURES.------------------------------
+
+procedure leerMae (var mae: archivo_maestro; var regM: info_mae);
+begin
+	if (not eof (mae)) then
+		read(mae,regM)
+	else
+		regM.anio := valor_alto;
+end;
+
+procedure asignarArchivo (var mae: archivo_maestro);
+var
+	nombre_arch: String;
+begin
+	writeln('Ingrese un nombre para el archivo maestro de ventas');
+	readln(nombre_arch);
+	assign(mae,nombre_arch); 
+end;
+
+//-----
+
+procedure generarReporte (var mae: archivo_maestro);
+var
+	anio: rangoAnio;
+	mes: rangoMes;
+	dia : rangoDia;
+	tiempo_acceso_diario: integer;
+	tiempo_acceso_mensual: integer;
+	tiempo_acceso_anual: integer;
+	tiempo_acceso_usuario : integer;
+	regM : info_mae;
+	usuario_actual : integer;
+begin
+	writeln('Ingrese un año para realizar el informe');
+	readln(anio);
+	reset(mae);
+	leerMae(mae,regM);
+	
+	while (regM.anio <> valor_alto)  and  (anio <> regM.anio) do begin
+		leerMae(mae,regM);
+	end;
+	if (regM.anio = valor_alto) then
+		writeln ('Año no encontrado. Fin del programa')
+	else
+		begin
+			writeln('Año:  ',anio);
+			tiempo_acceso_anual := 0;
+			while (regM.anio <> valor_alto) do begin
+					mes := regM.mes;
+					tiempo_acceso_mensual := 0;
+					writeln('		Mes:	', mes);
+					while (mes = regM.mes) do begin
+							dia := regM.dia;
+							tiempo_acceso_diario := 0;
+							writeln('					dia:	', dia);
+							while (dia = regM.dia) do begin
+									tiempo_acceso_usuario := 0;
+									usuario_actual := regM.id_usuario;
+									while (regM.id_usuario = usuario_actual) do begin
+											tiempo_acceso_usuario := tiempo_acceso_usuario + regM.tiempo_acceso;
+											leerMae(mae,regM);
+									end;
+									writeln('idUsuario  ',usuario_actual,'   Tiempo total de accesos en el dia  ', dia,'  mes  ', mes ,':    ' , tiempo_acceso_usuario);
+									tiempo_acceso_diario :=  tiempo_acceso_diario +  tiempo_acceso_usuario ;
+							end;
+							tiempo_acceso_mensual :=  tiempo_acceso_mensual +  tiempo_acceso_diario ;
+					end;	
+					writeln('Tiempo total de acceso en el mes  ', mes, ' es de:   ', tiempo_acceso_mensual);
+					tiempo_acceso_anual :=  tiempo_acceso_anual + tiempo_acceso_mensual;
+			end;
+			writeln('Tiempo total de acceso en el añi  ', anio, ' es de:   ', tiempo_acceso_anual);
+		end;
+	close(mae);
+end;
+
+
+
+//----------------------------MAIN--------------------------------------------
+var
+	mae : archivo_maestro;
+begin
+	asignarArchivo(mae);
+	generarReporte(mae);
+end.
