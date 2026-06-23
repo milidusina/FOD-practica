@@ -1,0 +1,93 @@
+{Se necesita contabilizar los votos de las diferentes mesas electorales registradas por provincia y
+localidad. Para ello, se posee un archivo con la siguiente información: código de provincia, código de
+localidad, número de mesa y cantidad de votos en dicha mesa. Presentar en pantalla un listado como se
+muestra a continuación:
+Código de Provincia
+Código de Localidad Total de Votos
+................................ ......................
+................................ ......................
+5
+Total de Votos Provincia: ____
+Código de Provincia
+Código de Localidad Total de Votos
+................................ ......................
+Total de Votos Provincia: ___
+…………………………………………………………..
+Total General de Votos: ___
+NOTA: La información está ordenada por código de provincia y código de localidad.
+}
+
+program ejer10;
+
+const
+	valor_alto = 9999;
+
+type
+	info_mae = record
+			cod_provincia:  integer;
+			cod_localidad: integer;
+			num_mesa  : integer;
+			cant_votos : integer;
+	end;
+
+	archivo_maestro = File of info_mae;
+
+//-----------------------PROCEDURES.------------------------------
+
+procedure leerMae (var mae: archivo_maestro; var regM : info_mae);
+begin
+	if (not eof (mae)) then 
+		read(mae,regM)
+	else
+		regM.cod_provincia  := valor_alto;
+end;
+
+procedure generarReporte (var mae: archivo_maestro);
+var
+		regM : info_mae;
+		provincia_actual : integer;  
+		localidad_actual: integer;     // lo mismo aca
+		votos_provincia: integer;
+		votos_localidad: integer;
+		votos_totales : integer;
+begin
+		reset(mae);
+		leerMae(mae,regM);
+		votos_totales := 0;
+		while (regM.cod_provincia <> valor_alto) do begin
+				provincia_actual := regM.cod_provincia;
+				writeln('El codigo de la provincia actual es:   ' , provincia_actual);
+				while (  provincia_actual  = regM.cod_provincia)   do begin
+						votos_provincia :=0;
+						localidad_actual:= regM.cod_localidad;
+						//writeln('El codigo de la localidad actual es:  ', localidad_actual);
+						votos_localidad := 0;
+						while  (  provincia_actual = regM.cod_provincia)   and  (  localidad_actual = regM.cod_localidad)  do begin
+								//votos_localidad := 0;
+								//mesa_actual := regM.num_mesa;
+								votos_localidad := votos_localidad + regM.cant_votos;
+								leerMae(mae,regM);
+						end;
+								writeln('El codigo de la localidad actual es:  ', localidad_actual, '        Total de votos:   ' , votos_localidad);
+								votos_provincia := votos_provincia + votos_localidad;
+				end;
+				writeln('Total de votos provincia:     ', votos_provincia);
+				votos_totales := votos_totales + votos_provincia;
+		end;
+		writeln('Cantidad general de votos ' , votos_totales);
+	close(mae);
+end;	
+
+
+//----------------------------MAIN--------------------------------------------
+var
+	mae : archivo_maestro;
+	nombre_arch : String;
+begin
+	writeln('Ingrese un nombre para el archivo maestro de ventas');
+	readln(nombre_arch);
+	assign(mae,nombre_arch); 
+	generarReporte(mae);
+end.
+
+
