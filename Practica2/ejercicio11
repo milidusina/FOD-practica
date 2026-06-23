@@ -1,0 +1,153 @@
+{Se tiene información en un archivo de las horas extras realizadas por los empleados de una empresa en
+un mes. Para cada empleado se tiene la siguiente información: departamento, división, número de
+empleado, categoría y cantidad de horas extras realizadas por el empleado. Se sabe que el archivo se
+encuentra ordenado por departamento, luego por división y, por último, por número de empleado.
+Presentar en pantalla un listado con el siguiente formato:
+Departamento
+División
+Número de Empleado Total de Hs. Importe a cobrar
+...... .......... .........
+...... .......... .........
+Total de horas división: ____
+Monto total por división: ____
+División
+.................
+Total horas departamento: ____
+Monto total departamento: ____
+Para obtener el valor de la hora se debe cargar un arreglo desde un archivo de texto al iniciar el
+programa con el valor de la hora extra para cada categoría. La categoría varía de 1 a 15. En el
+archivo de texto debe haber una línea para cada categoría con el número de categoría y el valor de la
+hora, pero el arreglo debe ser de valores de horas, con la posición del valor coincidente con el
+número de categoría.} 
+
+program ejer11;
+
+const
+	valor_alto = 9999;
+type 
+	rangoCategorias = 1..15;
+	empleado = record
+		departamento: integer;
+		division: integer;
+		num_empleado: integer;
+		categoria: rangoCategorias;
+		horas_extras: integer; //  horas lo ponemos  como  integer o real?
+	end;
+	
+	info_texto = record
+		categoria : rangoCategorias;
+		monto: real;
+	end;
+
+	archivo_maestro = File of empleado;
+	vector_horas = array [rangoCategorias] of real;
+
+//-----------------------PROCEDURES.------------------------------
+
+procedure asignarArchivo (var mae: archivo_maestro);
+var
+	nombre_arch: String;
+begin
+	writeln('Ingrese un nombre para el archivo maestro de ventas');
+	readln(nombre_arch);
+	assign(mae,nombre_arch); 
+end;
+//-----
+
+procedure asignarArchivoTexto (var arch_texto: Text);
+var
+	nombre_texto: String;
+begin
+	writeln('Ingrese un nombre para el archivo de carga');
+	readln(nombre_texto);
+	assign(arch_texto,nombre_texto); 
+end;
+//-----
+procedure leerMae (var mae: archivo_maestro; var regM: empleado);
+begin
+	if (not eof (mae)) then
+		read(mae,regM)
+	else
+		regM.departamento := valor_alto;
+end;
+
+//--
+procedure cargarVector (var texto1: Text; var vector : vector_horas);
+var
+	info : info_texto;
+begin
+	reset (texto1);
+	while (not eof (texto1)) do begin               //asi esta bien o con un for i??
+		readln(texto1, info.categoria,info.monto);
+		vector[info.categoria] := info.monto;
+	end;
+	close(texto1);
+end;
+//--------
+
+procedure generarReporte (var mae: archivo_maestro; vector: vector_horas);
+var	
+	regM : empleado;
+	depto_actual : integer;
+	div_actual: integer;
+	emple_actual : integer;
+	cant_horas : integer;
+	importe_a_cobrar: real;
+	categ: rangoCategorias;
+	monto_total_division : real;
+	horas_total_division : integer;
+	monto_total_departamento: real;
+	horas_total_departamento : integer;
+begin
+	reset(mae);
+	leerMae(mae,regM);
+	while (regM.departamento <> valor_alto ) do begin  //cual seria el corte? el departamento, la division o el num de empledo?
+		depto_actual := regM.departamento;
+		monto_total_departamento:= 0;
+		horas_total_departamento := 0 ;
+		writeln('Departamento  ', depto_actual);
+		while ( depto_actual =  regM.departamento) do begin
+				div_actual := regM.division;
+				monto_total_division := 0;
+				horas_total_division := 0;
+				writeln('Division:  ' , div_actual);
+				while  ( depto_actual =  regM.departamento)  and (div_actual = regM.division)  do begin
+						emple_actual := regM.num_empleado;
+						cant_horas := 0;
+						categ := regM.categoria;
+						writeln('Numero de empleado			Total de Hs.			Importe a cobrar');  //siempre preguntamos primero x el q corta con valor_alto para no leer null
+																																					//si hicieramos primero  (emple_actual = regM.num_empleado) 
+																																					// si llegamos al eof  lee una posicion invalida con null
+						while ( depto_actual =  regM.departamento) and (div_actual = regM.division) and (emple_actual = regM.num_empleado)   do begin
+								cant_horas := cant_horas + regM.horas_extras;
+								leerMae(mae,regM);
+						end;
+						importe_a_cobrar := cant_horas * vector[categ];
+						writeln(emple_actual,'			',cant_horas,'			',importe_a_cobrar,'			' );
+						monto_total_division := monto_total_division + importe_a_cobrar;
+						horas_total_division :=  horas_total_division + cant_horas;
+				end;	
+				writeln('Total de horas division:  ',horas_total_division );
+				writeln('Monto total por division:  ',monto_total_division );
+				monto_total_departamento:=  monto_total_departamento + monto_total_division;
+				horas_total_departamento :=  horas_total_departamento + horas_total_division;
+		end;
+		writeln('Total horas departamento:  ',horas_total_departamento );
+		writeln('Monto total departamento:  ',monto_total_departamento );
+	end;
+	close(mae);
+end;
+
+
+//----------------------------MAIN--------------------------------------------
+var
+	mae : archivo_maestro;
+	arch_texto : Text;
+	vector_montos_horas : vector_horas;
+begin
+	asignarArchivo(mae);
+	asignarArchivoTexto(arch_texto);
+	cargarVector (arch_texto, vector_montos_horas);
+	generarReporte(mae, vector_montos_horas);
+end.
+
